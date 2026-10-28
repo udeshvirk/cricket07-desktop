@@ -11,6 +11,9 @@ const path = require('path');
 const NAMES = JSON.parse(fs.readFileSync(path.join(__dirname, 'real-names.json'), 'utf8'));
 const SQUADS = JSON.parse(fs.readFileSync(path.join(__dirname, 'squads-2026.json'), 'utf8'));
 const { applySquads, legendsPatch, tintFsh } = require('./squads');
+const { EDGES_ENTRY, EDGE_TUNING, edgesPatch } = require('./gameplay');
+// Fingerprint of the edge tuning: a game patched with older values is rebuilt when it changes
+const ED_VER = require('crypto').createHash('md5').update(JSON.stringify(EDGE_TUNING) + edgesPatch.toString()).digest('hex').slice(0, 8);
 const md5 = (t) => require('crypto').createHash('md5').update(t).digest('hex');
 // Legends kits: each Legends side's slot kit files (archive names are the MD5 of the path without its extension)
 // get the country's kit, recoloured (tint) or as it is
@@ -21,9 +24,10 @@ const KITS = SQUADS.legends.teams.flatMap((t) => KIT_FILES.map((k) => ({ entry: 
 const SQ_VER = require('crypto').createHash('md5').update(JSON.stringify(SQUADS) + applySquads.toString() + legendsPatch.toString() + tintFsh.toString()).digest('hex').slice(0, 8);
 
 const PAGE_JS = `async (NAMES, SQUADS, LIB, KITS, want) => {
-  const { applySquads, legendsPatch, tintFsh } = LIB;
+  const { applySquads, legendsPatch, tintFsh, edgesPatch, EDGES_ENTRY, EDGE_TUNING } = LIB;
   const ENTRY = '113964e05e69ab31d264fb8f15c58e5c.cdf', REC = 360, MARK = '.names-original.json';
-  const EXTRA = legendsPatch('entries').concat(KITS.map((k) => k.entry));   // team list, kits, menu screens, kit textures (Legends)
+  // team list, kits, menu screens, kit textures (Legends); the edge table (Realistic edges)
+  const EXTRA = legendsPatch('entries').concat(KITS.map((k) => k.entry), EDGES_ENTRY);
   const root = await navigator.storage.getDirectory();
   let dir, fh;
   try { dir = await root.getDirectoryHandle('c07game'); fh = await (await dir.getDirectoryHandle('Data')).getFileHandle('data.gob'); }
@@ -76,7 +80,7 @@ const PAGE_JS = `async (NAMES, SQUADS, LIB, KITS, want) => {
   const dec = new TextDecoder('latin1');
   const nameAt = (c, i) => { const b = c.subarray(i * REC + 8, i * REC + 24); const z = b.indexOf(0); return dec.decode(z < 0 ? b : b.subarray(0, z)); };
   const key = (a) => a.pending ? 'partial' : [a.names && 'names', a.squads && (a.squads === true ? 'squads' : 'squads@' + a.squads),
-    a.legends && 'legends'].filter(Boolean).join('+') || 'original';
+    a.legends && 'legends', a.edges && 'edges@' + a.edges].filter(Boolean).join('+') || 'original';
 
   // What is applied now: the marker says (written with each change); an older app version's marker didn't
   // record it, so then the names themselves tell.
@@ -144,7 +148,8 @@ const PAGE_JS = `async (NAMES, SQUADS, LIB, KITS, want) => {
       else resets.push([where[n].pos, src.off, src.size]);
       continue;
     }
-    const changed = want.legends && legendsPatch(n, await original(...m.extra[n]), SQUADS);
+    const changed = n === EDGES_ENTRY ? want.edges && edgesPatch(await original(...m.extra[n]), EDGE_TUNING)
+      : want.legends && legendsPatch(n, await original(...m.extra[n]), SQUADS);
     if (changed) files.push([where[n].pos, pack(changed)]);
     else resets.push([where[n].pos, ...m.extra[n]]);
   }
@@ -163,21 +168,23 @@ const PAGE_JS = `async (NAMES, SQUADS, LIB, KITS, want) => {
   const t = new DataView(new ArrayBuffer(4)); t.setUint32(0, last, true);   // the archive's length
   await w.write({ type: 'write', position: 4, data: t.buffer });
   await w.close();
-  m.applied = { names: !!want.names, squads: want.squads || false, legends: !!want.legends };
+  m.applied = { names: !!want.names, squads: want.squads || false, legends: !!want.legends, edges: want.edges || false };
   await saveMark();
   return target;
 }`;
 
-// want: 'status' | 'original' | { names, squads, legends }. Returns the state afterwards: 'original', 'names',
-// 'squads@<version>', 'names+squads@<version>+legends' and so on, 'unknown' or 'no-game' (compare with stateFor).
-// Legends teams need the current squads.
+// want: 'status' | 'original' | { names, squads, legends, edges }. Returns the state afterwards: 'original', 'names',
+// 'squads@<version>', 'names+squads@<version>+legends+edges@<version>' and so on, 'unknown' or 'no-game'
+// (compare with stateFor). Legends teams need the current squads.
 function names(win, want) {
-  if (typeof want === 'object') want = { names: !!want.names, squads: want.squads ? SQ_VER : false, legends: !!(want.squads && want.legends) };
-  const lib = `({ applySquads: ${applySquads.toString()}, legendsPatch: ${legendsPatch.toString()}, tintFsh: ${tintFsh.toString()} })`;
+  if (typeof want === 'object') want = { names: !!want.names, squads: want.squads ? SQ_VER : false, legends: !!(want.squads && want.legends),
+    edges: want.edges ? ED_VER : false };
+  const lib = `({ applySquads: ${applySquads.toString()}, legendsPatch: ${legendsPatch.toString()}, tintFsh: ${tintFsh.toString()},
+    edgesPatch: ${edgesPatch.toString()}, EDGES_ENTRY: ${JSON.stringify(EDGES_ENTRY)}, EDGE_TUNING: ${JSON.stringify(EDGE_TUNING)} })`;
   return win.webContents.executeJavaScript(
     `(${PAGE_JS})(${JSON.stringify(NAMES)}, ${JSON.stringify(SQUADS)}, ${lib}, ${JSON.stringify(KITS)}, ${JSON.stringify(want)})`);
 }
-const stateFor = (want) => [want.names && 'names', want.squads && 'squads@' + SQ_VER, want.squads && want.legends && 'legends']
-  .filter(Boolean).join('+') || 'original';
+const stateFor = (want) => [want.names && 'names', want.squads && 'squads@' + SQ_VER, want.squads && want.legends && 'legends',
+  want.edges && 'edges@' + ED_VER].filter(Boolean).join('+') || 'original';
 
 module.exports = { names, stateFor, COUNT: NAMES.length };
