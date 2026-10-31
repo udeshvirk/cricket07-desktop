@@ -33,6 +33,9 @@
   .sw input:checked + span { background: var(--accent); }
   .sw input:checked + span::after { transform: translateX(18px); }
   .sw input:focus-visible + span { outline: 2px solid var(--accent-hi); outline-offset: 2px; }
+  /* keyboard use (Tab): the focused row and button stand out */
+  .row:has(input:focus-visible) { background: rgba(52, 184, 102, .1); }
+  button:focus-visible { outline: 2px solid var(--accent-hi); outline-offset: 2px; }
   button { font: inherit; cursor: pointer; border-radius: 9px; padding: 7px 14px; border: 1px solid var(--line);
     background: #1a2a1e; color: var(--fg); }
   button:hover { background: #22372a; }
@@ -179,7 +182,11 @@
     const u = await window.c07.action('update-engine'); if (u) showUpdates(u);
   };
   window.c07.onProgress((t) => { document.getElementById('engine-status').textContent = t; });
-  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') window.c07.action('close'); });
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') window.c07.action('close');
+    // Enter flips a switch, as Space does (buttons already take Enter)
+    if (e.key === 'Enter' && e.target.matches?.('input[type=checkbox]')) { e.preventDefault(); e.target.click(); }
+  });
 </script>
 </body>
 </html>
