@@ -84,6 +84,14 @@
     <div class="buttons" style="border-top:1px solid var(--line)"><button id="check-now">Check Now</button><small id="checked" style="align-self:center;color:var(--muted)"></small></div>
   </div>
 
+  <h2>Problems</h2>
+  <div class="card">
+    <div class="row hidden" id="safe-graphics"><div class="text"><b>Safe graphics is on</b><small>The game's picture didn't appear with normal settings, so safer ones are used. After updating your graphics driver, try normal graphics again.</small></div>
+      <button class="primary" data-action="graphics-normal">Try Normal Graphics</button></div>
+    <div class="row"><div class="text"><b>Log file</b><small>A record of what happened when the app last started. Attach it (log.txt) when you report a problem.</small></div>
+      <button data-action="show-log">Show Log File</button></div>
+  </div>
+
   <footer>
     <span id="keys"></span>
     <button class="primary" data-action="close">Done</button>
@@ -157,6 +165,7 @@
   }
   window.c07.get().then((s) => {
     showUpdates(s.updates);
+    document.getElementById('safe-graphics').classList.toggle('hidden', !s.safeGraphics);
     const auto = document.getElementById('auto-update');
     auto.checked = !!s.values.autoUpdate;
     auto.onchange = () => window.c07.set('autoUpdate', auto.checked);

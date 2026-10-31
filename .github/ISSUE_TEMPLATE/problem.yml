@@ -63,3 +63,12 @@ body:
       description: Drag a picture or video of the problem into this box. It helps a lot.
     validations:
       required: false
+  - type: textarea
+    id: log
+    attributes:
+      label: Log file (app 1.7.3 or newer)
+      description: |
+        Open Settings (Ctrl+, on Windows, ⌘, on Mac) and choose Show Log File, then drag log.txt into this box.
+        If the window stays white on Windows: press Windows+R, paste %APPDATA%\Cricket 07 for Windows and press Enter.
+    validations:
+      required: false

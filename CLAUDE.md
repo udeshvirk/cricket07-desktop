@@ -20,12 +20,13 @@ in-app text simple.
 | `names.js` | Patches the player table `113964e05e69ab31d264fb8f15c58e5c.cdf` inside `Data/data.gob` (EA BIGF + RefPack) in OPFS: real names (`real-names.json`) and/or current squads (`squads.js`). Always builds from the original list, appends the result and repoints the index; `.names-original.json` marks the original and what is applied (`applied: {names, squads}`, squads = a fingerprint of the squad data, so changed squads are rebuilt), so 'original' restores it byte-for-byte. `extra` records the original index entries of the other files it changes (Legends teams). |
 | `squads.js`, `squads-2026.json` | Current squads (2026), setting `squads2026`. Player table = Player Editor07's "PS2 roster" layout: 1200 records × 360 bytes from offset 4, then 67 team blocks × 2808 from 432004 (20 int16 player ids, captain id at +46). Each 2006 squad member's record becomes a 2026 player, copied from the closest 2006 international player (role, bowling type, hand, level), then name, ratings (6-bit fields, shifted from the model's), role, batting position, bowling type, hand, DOB set and career stats cleared. Ratings in the JSON are our own. Legends teams (`legends2006`, needs squads): the game has 4 team categories, fixed in its code, so "Australian State" is renamed Legends (states move to Other) and 10 A/XI teams become the 2006 squads (`legendsPatch`: team list XML, kits XML, kit textures: each slot's kit files (`teams/<location>/colouredkit1` etc., FSH) get the country's kit in another shade (`tintFsh`, per-team `kit.tint`; Australia uses its real yellow kit `auo`), so a team and its Legends side look apart. Archive names are MD5 of the path without extension (`xml/config/teaminfo` → `be2970b0….xml`), the category label in 3 menu packages and both string tables). The 2026 players then use records found only in those teams (`spare` teams after). |
 | `updates.js` | App updates (GitHub releases API) and engine updates (HEAD ETag = MD5; `index.html` compared with Cloudflare's per-download tag stripped). Engine update downloads to `engine.new`, verifies, keeps `engine.previous`. Restore original names before restarting after an engine update, or the game re-downloads 341 MB. |
+| `diagnostics.js` | `log.txt` per launch (previous in `log-previous.txt`): versions, GPU + driver, WebGPU adapter, page files, startup steps, page warnings/errors (repeats collapsed), crashes. Help menu / Settings → Show Log File. Safe graphics (`graphics.json`): no picture (page got its files but never loaded, or no animation frames) → dialog + restart one level safer (0 normal + `ignore-gpu-blocklist`, 1 blocklist respected, 2 `disable-gpu-compositing`, 3 `disable-gpu` = SwiftShader); 3 GPU crashes before the first frame → restart a level safer without asking (Chromium quits silently after ~8). A changed driver, or Settings → Try Normal Graphics, goes back to 0. |
 | `saves.js`, `screenshot.js` | Save backups (Documents/`<app> Saves`), screenshots (Pictures/`<app> Screenshots`). |
 | `settings.html`, `settings-preload.js` | Settings window (⌘, / Ctrl+,). |
 | `test/smoke.js`, `.github/workflows/windows-test.yml` | Windows end-to-end test on GitHub (software WebGPU via SwiftShader), ending with Quit from the game's menu. Runs on every published release, or manually (`gh workflow run windows-test.yml --ref <branch>`). |
 | `test/drive.js` | Local manual driver: `UD=<scratch userData copy> OUT=<dir> npx electron test/drive.js`, then append commands (`key S`, `shot name`, `js …`, `crash`, `exit`) to `$OUT/cmd`. |
 
-Storage under `userData`: `engine/` (page + engine), `manifest.json` (game-file list), `settings.json`, `updates.json`; game files in OPFS (`c07game`).
+Storage under `userData`: `engine/` (page + engine), `manifest.json` (game-file list), `settings.json`, `updates.json`, `log.txt`, `graphics.json`; game files in OPFS (`c07game`).
 Skip intro = rename OPFS `Data/eaep.vp6` → `eaep.vp6.skip` before the game starts.
 
 ## Lessons
@@ -45,6 +46,9 @@ Skip intro = rename OPFS `Data/eaep.vp6` → `eaep.vp6.skip` before the game sta
   Don't copy playermanager.xml colour fields between teams: they hid the teams.
 - Engines from 26 Oct 2026 have their own widescreen (on unless `?4x3`); it draws the bar under the batting
   mini-screen past its frame, and stacked with ours squeezes the HUD. The app passes `4x3` and keeps its own (`engineWide()` in main.js).
+- White window on Windows = Chromium's graphics process hung or crashed (the app itself paints black). Test it on a Mac
+  with `test/drive.js --gpu-launcher=<script>`: a script that sleeps = hang (the page never finishes loading), one that exits = crash.
+  `capturePage` hangs with `disable-gpu`; use `screencapture`.
 - A fast Mac never shows slowness: test "Keep the game smooth" by injecting a busy-wait per frame (`test/drive.js`).
 
 ## Releasing

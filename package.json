@@ -25,7 +25,8 @@
       "enhance.js",
       "settings.html",
       "settings-preload.js",
-      "updates.js"
+      "updates.js",
+      "diagnostics.js"
     ],
     "directories": {
       "buildResources": "build-res",

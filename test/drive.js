@@ -1,6 +1,7 @@
 // Manual driver for local testing: runs the app on a given userData folder and takes commands from a file.
 // Run: UD=<scratch userData copy> OUT=<folder> npx electron test/drive.js
 // Commands (one per line, appended to $OUT/cmd): key <KeyCode> [mod,...] | shot <name> | js <code> | exit
+// | shotsettings <name> | jssettings <code> (in the Settings window)
 const { app, BrowserWindow } = require('electron');
 const fs = require('fs');
 const path = require('path');
@@ -51,6 +52,9 @@ app.on('browser-window-created', (_e, win) => {
           } else if (cmd === 'shotsettings') {
             const sw = BrowserWindow.getAllWindows().find((w) => w.getParentWindow());
             if (sw) fs.writeFileSync(path.join(OUT, `${rest[0]}.png`), (await sw.webContents.capturePage()).toPNG());
+          } else if (cmd === 'jssettings') {
+            const sw = BrowserWindow.getAllWindows().find((w) => w.getParentWindow());
+            if (sw) log('jssettings', JSON.stringify(await sw.webContents.executeJavaScript(rest.join(' '))));
           } else if (cmd === 'crash') win.webContents.forcefullyCrashRenderer();
           else if (cmd === 'exit') realExit(0);
           log('done', lines[done - 1]);

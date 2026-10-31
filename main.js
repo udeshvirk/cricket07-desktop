@@ -11,6 +11,7 @@ const saves = require('./saves');
 const { takeScreenshot, showScreenshots } = require('./screenshot');
 const { names, stateFor } = require('./names');
 const updates = require('./updates');
+const diagnostics = require('./diagnostics');
 
 const REMOTE = 'https://cricket07.dhaiwat.com/';
 const SCHEME = 'c07';
@@ -22,8 +23,7 @@ const ENGINE_FILES = new Set(['index.html', 'c07.js', 'netplay.js', 'audio-workl
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.wasm': 'application/wasm', '.png': 'image/png',
   '.ico': 'image/x-icon', '.json': 'application/json' };
 
-app.commandLine.appendSwitch('enable-unsafe-webgpu');
-app.commandLine.appendSwitch('ignore-gpu-blocklist');
+app.commandLine.appendSwitch('enable-unsafe-webgpu');   // more graphics switches: diagnostics.init()
 
 protocol.registerSchemesAsPrivileged([{
   scheme: SCHEME,
@@ -165,9 +165,10 @@ async function handle(request) {
   }
   if (!ENGINE_FILES.has(rel)) return new Response('Not found', { status: 404, headers: ISOLATION });
   try {
-    const body = adapt(rel, await engineFile(rel));
+    const body = adapt(rel, await diagnostics.serving(rel, () => engineFile(rel)));
     return new Response(body, { headers: { 'Content-Type': TYPES[path.extname(rel)] || 'application/octet-stream', ...ISOLATION } });
   } catch (err) {
+    diagnostics.log('could not load', rel + ':', err.message);
     if (rel === 'index.html') return new Response(FIRST_RUN_OFFLINE, { headers: { 'Content-Type': 'text/html', ...ISOLATION } });
     return new Response(String(err), { status: 503, headers: ISOLATION });
   }
@@ -185,27 +186,57 @@ async function startGame(beforePlay) {
   // a running game keeps the page too busy to navigate away, so end its process first
   if (win.webContents.getURL()) endPage();
   applied = settings();
-  await win.loadURL(START_URL + '?' + gfxQuery(applied)).catch(() => {});
+  diagnostics.log('starting the game:', gfxQuery(applied) || '(default graphics)');
+  await win.loadURL(START_URL + '?' + gfxQuery(applied)).catch((err) => diagnostics.log('page load:', err.message));
+  logAdapter();
+  let lastStatus = '';
   for (;;) {
     const state = await win.webContents.executeJavaScript(`(() => {
       const el = document.getElementById('view-home');
       if (!el) return 'none';
-      if (el.classList.contains('hidden')) return 'wait';
+      if (el.classList.contains('hidden')) {
+        const st = document.getElementById('status');
+        // the engine's no-WebGPU text is written for browsers; say what to do in the app instead
+        if (st && /WebGPU/.test(st.textContent)) st.textContent = ${JSON.stringify(diagnostics.NO_GPU_TEXT())};
+        return 'wait:' + (st ? st.textContent : '');
+      }
       // game files are ready: show a short message instead of the (hidden) Solo / Multiplayer screen
       document.getElementById('view-loading').classList.remove('hidden');
       document.getElementById('status').textContent = 'Starting the game…';
       return 'home';
     })()`).catch(() => 'none');
     if (state === 'home') break;
-    if (state === 'none') return;   // the offline notice, or an error page
+    if (state === 'none') { diagnostics.log('no game page (offline notice or error page)'); return; }
+    // what the page says while it waits (download progress is logged when its wording changes, not every number)
+    const status = state.slice(5);
+    if (status.replace(/[\d.,]+/g, '#') !== lastStatus.replace(/[\d.,]+/g, '#')) diagnostics.log('page says:', status);
+    lastStatus = status;
     await new Promise((r) => setTimeout(r, 150));
   }
+  diagnostics.log('game files ready');
   await saves.autoBackup(win);
   await applyNamesSetting();
   await applyIntroSetting();
   if (beforePlay) await beforePlay();
   await win.webContents.executeJavaScript(`document.getElementById('play').click()`);
+  diagnostics.log('game started');
   win.webContents.executeJavaScript(HINT_JS).catch(() => {});
+}
+
+// The graphics adapter the page gets for the game (once per launch)
+let adapterLogged = false;
+function logAdapter() {
+  if (adapterLogged || win.isDestroyed()) return;
+  adapterLogged = true;
+  const js = `(async () => {
+    if (!navigator.gpu) return 'no WebGPU';
+    const a = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
+    if (!a) return 'WebGPU found no adapter';
+    const i = a.info || {};
+    return [i.vendor, i.architecture, i.device, i.description, i.isFallbackAdapter ? '(software)' : ''].filter(Boolean).join(' ') || 'adapter (no details)';
+  })()`;
+  Promise.race([win.webContents.executeJavaScript(js), new Promise((r) => setTimeout(() => r('no answer in 15 s'), 15000))])
+    .then((a) => diagnostics.log('WebGPU:', a), (err) => diagnostics.log('WebGPU:', err.message));
 }
 
 // A short hint once the game starts, since the menu bar is hidden in full screen
@@ -277,7 +308,7 @@ const STOPPED_JS = `(() => {
 function showStopped(why) {
   if (gameStopped) return;
   gameStopped = true;
-  console.error('game stopped:', why);
+  diagnostics.log('game stopped:', why);
   win.webContents.executeJavaScript(STOPPED_JS).catch(() => {});
 }
 
@@ -287,6 +318,7 @@ function createWindow() {
     backgroundColor: '#000000', title: 'Cricket 07',
     webPreferences: { contextIsolation: true, sandbox: true, backgroundThrottling: false },
   });
+  diagnostics.watch(win);
   win.webContents.setWindowOpenHandler(({ url }) => { openWebLink(url); return { action: 'deny' }; });
   // the game window only ever shows the app's own pages
   win.webContents.on('will-navigate', (e) => {
@@ -407,7 +439,7 @@ const updateInfo = () => ({ appVersion: app.getVersion(), ...updates.readState()
 const fromSettings = (e) => !!settingsWin && e.sender === settingsWin.webContents;
 ipcMain.handle('settings:get', (e) => {
   if (!fromSettings(e)) return null;
-  return { values: settings(), applied, platform: process.platform, updates: updateInfo() };
+  return { values: settings(), applied, platform: process.platform, updates: updateInfo(), safeGraphics: diagnostics.level() };
 });
 ipcMain.handle('settings:set', (e, key, value) => {
   if (!fromSettings(e) || !Object.hasOwn(DEFAULTS, key)) return;
@@ -425,6 +457,8 @@ ipcMain.handle('settings:action', async (e, name) => {
     case 'backup': return saves.backupNow(settingsWin || win);
     case 'restore': close(); return saves.restore(win, startGame);
     case 'backups': return saves.showBackups();
+    case 'show-log': return diagnostics.showLog();
+    case 'graphics-normal': return diagnostics.tryNormal();
     case 'update-check': await updates.check(engineInfo()).catch(() => {}); return updateInfo();
     case 'update-download': {
       const u = updates.readState().app?.url;
@@ -492,6 +526,8 @@ function buildMenu() {
     { role: 'help', submenu: [
       { label: 'About the Browser Port', click: () => shell.openExternal('https://github.com/Dhaiwat10/cricket07-browser') },
       { label: 'This App on GitHub', click: () => shell.openExternal('https://github.com/udeshvirk/cricket07-desktop') },
+      { type: 'separator' },
+      { label: MAC ? 'Show Log File in Finder' : 'Show Log File', click: () => diagnostics.showLog() },
     ] },
   ]));
 }
@@ -499,6 +535,8 @@ function buildMenu() {
 // Only one copy may run: two copies sharing the game's storage make the browser engine treat it as damaged
 // and wipe it (game files and saves). A second launch just brings the running game to the front.
 if (!app.requestSingleInstanceLock()) app.exit(0);
+// (after the lock, so a second launch doesn't start a new log over the running one's)
+else diagnostics.init();
 app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.show(); win.focus(); } });
 
 // Windows shows notifications (Screenshot saved) only for an app ID matching the installer's shortcut
@@ -509,6 +547,7 @@ app.whenReady().then(() => {
   protocol.handle(SCHEME, (request) => handle(request).catch((err) => new Response(String(err), { status: 503, headers: ISOLATION })));
   buildMenu();
   createWindow();
+  diagnostics.ready();   // logs the graphics card; a new driver after safe graphics restarts with normal graphics
 });
 
 // The game keeps worker threads busy, which can stall a normal quit; end the app right away instead.

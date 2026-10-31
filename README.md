@@ -103,6 +103,10 @@ The game only remembers changes you save there.
   graphics driver (from Intel, NVIDIA or AMD's website) and try again.
 - Open **Settings** (⌘, or Ctrl+,) and switch off **Extra-smooth edges**, **HD textures** and **Widescreen**, then restart.
 
+**White window on Windows:** the graphics driver couldn't start. The app notices this, says so, and restarts with
+safer graphics settings. If it keeps happening, update your graphics driver from Intel, NVIDIA or AMD's website
+(Windows Update often has an older one).
+
 **The game feels slow:** plug in the charger (laptops slow down on battery). The app already eases off picture
 effects if needed; to see the speed, switch on **Show frame rate** in Settings (60 is full speed).
 
@@ -113,8 +117,9 @@ Quit in the game's menu). Press **Esc** to close, or **Enter** to start again.
 
 **Mac says the app can't be opened or checked:** follow steps 3 and 4 of [Install on a Mac](#install-on-a-mac).
 
-**Still stuck?** [Tell us here](https://github.com/udeshvirk/cricket07-desktop/issues). Please say whether you use
-a Mac or Windows, which computer it is, and add a photo or screenshot of the screen. That helps us fix it quickly.
+**Still stuck?** [Tell us here](https://github.com/udeshvirk/cricket07-desktop/issues/new/choose) and attach the
+app's log file: open **Settings** and choose **Show Log File**, then drag `log.txt` into your report. If the window
+stays white, press **Windows+R**, paste `%APPDATA%\Cricket 07 for Windows` and press Enter to find it.
 
 ## Credits
 
