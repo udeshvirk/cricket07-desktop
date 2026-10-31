@@ -98,12 +98,18 @@ function markAnnounced() {
 async function updateEngine(engine, files, onProgress = () => {}) {
   const tmp = engine.dir + '.new';
   fs.rmSync(tmp, { recursive: true, force: true });
+  const trustedHost = new URL(engine.remote).hostname;
   const list = [...files, 'game/manifest.json'];
   let n = 0;
   for (const rel of list) {
     onProgress(`Downloading ${rel} (${++n} of ${list.length})`);
     const res = await net.fetch(engine.remote + rel, { cache: 'no-store' });
     if (!res.ok) throw new Error(`${rel}: HTTP ${res.status}`);
+    // A redirect to a different host/scheme would let whoever controls it supply both the file and its
+    // fingerprint; only accept the response if it still came from the pinned, secure origin.
+    const resUrl = new URL(res.url);
+    if (resUrl.protocol !== 'https:' || resUrl.hostname !== trustedHost)
+      throw new Error(`${rel}: download came from an unexpected origin`);
     const body = Buffer.from(await res.arrayBuffer());
     const tag = tagOf(res);
     if (/^[0-9a-f]{32}$/.test(tag) && crypto.createHash('md5').update(body).digest('hex') !== tag)
