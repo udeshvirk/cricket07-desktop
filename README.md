@@ -55,6 +55,7 @@ The Windows version is new: if something doesn't work, please [tell us](https://
 | Move, aim a shot | Arrow keys | Left stick |
 | Select, play a shot | **S** | ✕ / A |
 | Go back | **W** | △ / Y |
+| Next / previous item in a menu (switch on **Tab in menus** in Settings) | **Tab** / **Shift+Tab** | |
 | Lofted shot (hit it in the air) | Hold **Shift** + shot | Hold L1 / LB + shot |
 | Pause | **Esc** | |
 | All keyboard controls | **⌘K** (Ctrl+K on Windows) | |

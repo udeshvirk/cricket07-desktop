@@ -21,7 +21,35 @@
   const q = new URLSearchParams(location.search);
   const cfg = (window.c07Enhance = { fxaa: q.get('fxaa') !== '0', aniso: q.get('aniso') !== '0', mips: q.get('mips') !== '0',
     sharpen: q.get('sharpen') === '0' ? 0 : 0.5, vivid: q.get('vivid') === '1', wide: q.get('wide') === '1', stage: q.get('stage') === '1', msaa: q.get('msaa') === '1', upscale: q.get('upscale') === '1',
-    auto: q.get('auto') !== '0', level: Math.max(0, Math.min(3, +q.get('level') || 0)), fps: q.get('fps') === '1', scale: 1, sharpenBoost: 0 });
+    auto: q.get('auto') !== '0', level: Math.max(0, Math.min(3, +q.get('level') || 0)), fps: q.get('fps') === '1', scale: 1, sharpenBoost: 0,
+    tabKeys: q.get('keys') === '1' });
+
+  // ---- Tab in menus (off unless switched on): the game's menus move with the arrow keys, so Tab / Shift+Tab are
+  // passed on as Down / Up. The offline game doesn't use Tab (Enter it does: naming a save), so only Tab is changed.
+  // It also applies in a match (the game doesn't say when a menu is showing), and can be switched live.
+  const held = new Map();   // pressed Tab -> the key it was passed on as (so its release matches, even if Shift changed)
+  const translate = (e) => {
+    if (!e.isTrusted || e.code !== 'Tab') return;   // our own events (below), and every other key
+    let to = held.get(e.code);
+    if (!to) {
+      // a release with no matching press (pressed before this page): swallow it too
+      if (e.type === 'keyup') { if (cfg.tabKeys) { e.preventDefault(); e.stopImmediatePropagation(); } return; }
+      if (!cfg.tabKeys || e.altKey || e.ctrlKey || e.metaKey) return;
+      to = e.shiftKey ? 'ArrowUp' : 'ArrowDown';
+      held.set(e.code, to);
+    }
+    if (e.type === 'keyup') held.delete(e.code);
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    window.dispatchEvent(new KeyboardEvent(e.type, { code: to, key: to, repeat: e.repeat, shiftKey: e.shiftKey, bubbles: true, cancelable: true }));
+  };
+  window.addEventListener('keydown', translate, true);
+  window.addEventListener('keyup', translate, true);
+  // a key let go while the window was in the background: let its stand-in go too
+  window.addEventListener('blur', () => {
+    for (const [, to] of held) window.dispatchEvent(new KeyboardEvent('keyup', { code: to, key: to, bubbles: true }));
+    held.clear();
+  });
 
   // ---- sharper textures
   const createSampler = GPUDevice.prototype.createSampler;

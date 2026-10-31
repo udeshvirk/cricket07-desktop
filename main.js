@@ -43,7 +43,7 @@ const ENGINE_DIR = () => userFile('engine');
 // ---------------------------------------------------------------- settings
 
 const SETTINGS = () => userFile('settings.json');
-const DEFAULTS = { realNames: true, squads2026: false, legends2006: false, fxaa: true, aniso: true, mips: true, sharpen: true, vivid: false, wide: true, msaa: true, upscale: true, auto: true, fps: false, skipIntro: true, autoUpdate: true };
+const DEFAULTS = { realNames: true, squads2026: false, legends2006: false, fxaa: true, aniso: true, mips: true, sharpen: true, vivid: false, wide: true, msaa: true, upscale: true, auto: true, fps: false, skipIntro: true, autoUpdate: true, tabKeys: false };
 const settings = () => { try { return { ...DEFAULTS, ...JSON.parse(fs.readFileSync(SETTINGS(), 'utf8')) }; } catch { return { ...DEFAULTS }; } };
 const saveSettings = (s) => fs.writeFileSync(SETTINGS(), JSON.stringify(s, null, 2));
 // Engines from 26 Oct 2026 have their own widescreen, on unless ?4x3. It draws the bar under the mini-screen too
@@ -52,7 +52,7 @@ const saveSettings = (s) => fs.writeFileSync(SETTINGS(), JSON.stringify(s, null,
 const engineWide = () => { try { return fs.readFileSync(path.join(ENGINE_DIR(), 'c07.js'), 'utf8').includes('C07_WIDESCREEN'); } catch { return false; } };
 const gfxQuery = (s, native = engineWide()) => [s.fxaa ? '' : 'fxaa=0', s.aniso ? '' : 'aniso=0', s.mips ? '' : 'mips=0',
   s.sharpen ? '' : 'sharpen=0', s.vivid ? 'vivid=1' : '', native ? (s.wide ? '4x3&wide=1' : 'stage=1&4x3') : s.wide ? 'wide=1' : '', s.msaa ? 'msaa=1' : '', s.upscale ? 'upscale=1' : '',
-  s.auto ? (s.autoLevel ? `level=${s.autoLevel}` : '') : 'auto=0', s.fps ? 'fps=1' : ''].filter(Boolean).join('&');
+  s.auto ? (s.autoLevel ? `level=${s.autoLevel}` : '') : 'auto=0', s.fps ? 'fps=1' : '', s.tabKeys ? 'keys=1' : ''].filter(Boolean).join('&');
 // settings that switch while the game runs (the others apply when the game starts)
 const LIVE = {
   fxaa: (v) => `window.c07Enhance.fxaa = ${v}`,
@@ -60,6 +60,7 @@ const LIVE = {
   vivid: (v) => `window.c07Enhance.vivid = ${v}`,
   auto: (v) => `window.c07Enhance.setAuto?.(${v})`,
   fps: (v) => `window.c07Enhance.fps = ${v}`,
+  tabKeys: (v) => `window.c07Enhance.tabKeys = ${v}`,
 };
 const MAC = process.platform === 'darwin';
 
