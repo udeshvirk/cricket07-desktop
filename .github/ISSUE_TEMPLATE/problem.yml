@@ -1,0 +1,65 @@
+name: Report a problem
+description: Something isn't working in the game or the app.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please fill in every box. Without these details we can't find or fix the problem.
+  - type: textarea
+    id: what
+    attributes:
+      label: What went wrong?
+      description: What did you do, and what happened? For example, "Opened the app, the window stayed white."
+    validations:
+      required: true
+  - type: dropdown
+    id: system
+    attributes:
+      label: Computer
+      options:
+        - Windows
+        - Mac with Apple chip (M1, M2, M3, M4…)
+        - Mac with Intel chip
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      description: Settings (Ctrl+, on Windows, ⌘, on Mac) shows it under Updates. Or say which file you downloaded and when.
+      placeholder: "1.7.2"
+    validations:
+      required: true
+  - type: input
+    id: os-version
+    attributes:
+      label: Windows or macOS version
+      description: "Windows: Start → Settings → System → About. Mac: Apple menu → About This Mac."
+      placeholder: "Windows 11 23H2 / macOS 15.3"
+    validations:
+      required: true
+  - type: input
+    id: hardware
+    attributes:
+      label: Laptop or PC model and graphics card
+      description: "Windows: Start → Settings → System → About, and Task Manager → Performance → GPU. Mac: About This Mac."
+      placeholder: "Dell Inspiron 15, Intel UHD Graphics / MacBook Air M2"
+    validations:
+      required: true
+  - type: dropdown
+    id: first-time
+    attributes:
+      label: Did the game ever work on this computer?
+      options:
+        - No, it never worked
+        - Yes, it worked before and stopped
+    validations:
+      required: true
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot or video
+      description: Drag a picture or video of the problem into this box. It helps a lot.
+    validations:
+      required: false
