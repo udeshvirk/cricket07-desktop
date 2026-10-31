@@ -77,6 +77,8 @@ The game only remembers changes you save there.
   Tendulkar, D.Dhenier for MS Dhoni). This app shows the real names for 394 players.
 - **Today's players, if you want them.** Switch on **Current squads (2026)** in Settings to play with Kohli, Bumrah,
   Root, Babar, Cummins and the rest for the 10 main teams. Switch it off for the original 2006 squads.
+- **Realistic edges, if you want a harder game.** Switch on **Realistic edges** in Settings: a mistimed shot finds the
+  edge more often and a well-timed one less, for you and the CPU, in every format.
 - **Legends teams.** With current squads on, switch on **Legends teams** to add a Legends category: India Legends with
   Tendulkar and Dravid, Australia Legends with Ponting and Warne, and the other 2006 sides. Play India today against
   Pakistan Legends.
