@@ -12,7 +12,14 @@ const REPO = 'udeshvirk/cricket07-desktop';
 const DAY = 24 * 60 * 60 * 1000;
 
 const STATE = () => path.join(app.getPath('userData'), 'updates.json');
-const readState = () => { try { return JSON.parse(fs.readFileSync(STATE(), 'utf8')); } catch { return {}; } };
+// A saved "new version available" is compared with the running version again: after the app is updated, the
+// last check (made by the older version) would otherwise offer the version that is now running, or an older one.
+const readState = () => {
+  let s;
+  try { s = JSON.parse(fs.readFileSync(STATE(), 'utf8')); } catch { return {}; }
+  if (s.app?.version) s.app.available = newer(s.app.version, app.getVersion());
+  return s;
+};
 const writeState = (s) => fs.writeFileSync(STATE(), JSON.stringify(s, null, 2));
 
 // "1.10.0" > "1.9.2"
