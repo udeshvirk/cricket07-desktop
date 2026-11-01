@@ -12,7 +12,9 @@ const NAMES = JSON.parse(fs.readFileSync(path.join(__dirname, 'real-names.json')
 const SQUADS = JSON.parse(fs.readFileSync(path.join(__dirname, 'squads-2026.json'), 'utf8'));
 const { applySquads, legendsPatch, renameFsh, tintFsh, FAST_BOWLERS, fastBowlersPatch } = require('./squads');
 const { EDGES_ENTRY, EDGE_TUNING, MISSES_ENTRY, MISS_TUNING, BATPAD_ENTRY, BATPAD_TUNING, edgesPatch,
-  PITCH_ENTRY, PITCH_TUNING, pitchPatch, SIXES_ENTRY, SIXES_TUNING, sixesPatch, WEATHER_ENTRY, WEATHER_TUNING, weatherPatch } = require('./gameplay');
+  PITCH_ENTRY, PITCH_TUNING, pitchPatch, SIXES_ENTRY, SIXES_TUNING, sixesPatch, WEATHER_ENTRY, WEATHER_TUNING, weatherPatch, CPU_SIXES, shotPatch } = require('./gameplay');
+// the game's 830 shot files (Fewer CPU slogs changes their six-attempt values)
+const SHOT_FILES = JSON.parse(fs.readFileSync(path.join(__dirname, 'shot-attributes.json'), 'utf8'));
 // Fingerprint of the edge tuning: a game patched with older values is rebuilt when it changes
 const ED_VER = require('crypto').createHash('md5').update(JSON.stringify(EDGE_TUNING) + edgesPatch.toString()).digest('hex').slice(0, 8);
 // Same for the misses and bat-pad tunings (Realistic dismissals)
@@ -22,6 +24,8 @@ const PI_VER = require('crypto').createHash('md5').update(JSON.stringify(PITCH_T
 const SX_VER = require('crypto').createHash('md5').update(JSON.stringify(SIXES_TUNING) + sixesPatch.toString()).digest('hex').slice(0, 8);
 // ... and Weather variety
 const WX_VER = require('crypto').createHash('md5').update(JSON.stringify(WEATHER_TUNING) + weatherPatch.toString()).digest('hex').slice(0, 8);
+// ... and Fewer CPU slogs
+const CS_VER = require('crypto').createHash('md5').update(JSON.stringify(CPU_SIXES) + shotPatch.toString()).digest('hex').slice(0, 8);
 const md5 = (t) => require('crypto').createHash('md5').update(t).digest('hex');
 // Legends kits: each Legends side's slot kit files (archive names are the MD5 of the path without its extension)
 // get the country's kit, recoloured (tint) or as it is
@@ -37,13 +41,14 @@ const SQ_VER = require('crypto').createHash('md5').update(JSON.stringify(SQUADS)
 
 const PAGE_JS = `async (NAMES, SQUADS, LIB, KITS, want) => {
   const { applySquads, legendsPatch, renameFsh, tintFsh, FAST_BOWLERS, fastBowlersPatch, edgesPatch, EDGES_ENTRY, EDGE_TUNING, MISSES_ENTRY, MISS_TUNING, BATPAD_ENTRY, BATPAD_TUNING,
-    PITCH_ENTRY, PITCH_TUNING, pitchPatch, SIXES_ENTRY, SIXES_TUNING, sixesPatch, WEATHER_ENTRY, WEATHER_TUNING, weatherPatch } = LIB;
+    PITCH_ENTRY, PITCH_TUNING, pitchPatch, SIXES_ENTRY, SIXES_TUNING, sixesPatch, WEATHER_ENTRY, WEATHER_TUNING, weatherPatch, CPU_SIXES, shotPatch, SHOT_FILES } = LIB;
+  const SHOTS = new Set(SHOT_FILES);
   const ENTRY = '113964e05e69ab31d264fb8f15c58e5c.cdf', REC = 360, MARK = '.names-original.json';
   // team list, kits, menu screens, kit textures (Legends); the fast-bowler list (current squads); the edge table (Realistic edges);
   // the misses and bat-pad tables (Realistic dismissals); deliveries (Livelier pitches); six hitting (More sixes);
-  // weather (Weather variety)
+  // weather (Weather variety); the shot files (Fewer CPU slogs)
   const EXTRA = legendsPatch('entries').concat(KITS.map((k) => k.entry), FAST_BOWLERS, EDGES_ENTRY, MISSES_ENTRY, BATPAD_ENTRY, PITCH_ENTRY, SIXES_ENTRY,
-    WEATHER_ENTRY);
+    WEATHER_ENTRY, SHOT_FILES);
   const root = await navigator.storage.getDirectory();
   let dir, fh;
   try { dir = await root.getDirectoryHandle('c07game'); fh = await (await dir.getDirectoryHandle('Data')).getFileHandle('data.gob'); }
@@ -97,7 +102,7 @@ const PAGE_JS = `async (NAMES, SQUADS, LIB, KITS, want) => {
   const nameAt = (c, i) => { const b = c.subarray(i * REC + 8, i * REC + 24); const z = b.indexOf(0); return dec.decode(z < 0 ? b : b.subarray(0, z)); };
   const key = (a) => a.pending ? 'partial' : [a.names && 'names', a.squads && (a.squads === true ? 'squads' : 'squads@' + a.squads),
     a.legends && 'legends', a.edges && 'edges@' + a.edges, a.outs && 'outs@' + a.outs,
-    a.pitch && 'pitch@' + a.pitch, a.sixes && 'sixes@' + a.sixes, a.weather && 'weather@' + a.weather].filter(Boolean).join('+') || 'original';
+    a.pitch && 'pitch@' + a.pitch, a.sixes && 'sixes@' + a.sixes, a.weather && 'weather@' + a.weather, a.cpuSixes && 'cpusixes@' + a.cpuSixes].filter(Boolean).join('+') || 'original';
 
   // What is applied now: the marker says (written with each change); an older app version's marker didn't
   // record it, so then the names themselves tell.
@@ -173,6 +178,7 @@ const PAGE_JS = `async (NAMES, SQUADS, LIB, KITS, want) => {
       : n === PITCH_ENTRY ? want.pitch && pitchPatch(await original(...m.extra[n]), PITCH_TUNING)
       : n === SIXES_ENTRY ? want.sixes && sixesPatch(await original(...m.extra[n]), SIXES_TUNING)
       : n === WEATHER_ENTRY ? want.weather && weatherPatch(await original(...m.extra[n]), WEATHER_TUNING)
+      : SHOTS.has(n) ? want.cpuSixes && shotPatch(await original(...m.extra[n]), CPU_SIXES)
       : want.legends && legendsPatch(n, await original(...m.extra[n]), SQUADS);
     if (changed) files.push([where[n].pos, pack(changed)]);
     else resets.push([where[n].pos, ...m.extra[n]]);
@@ -193,18 +199,18 @@ const PAGE_JS = `async (NAMES, SQUADS, LIB, KITS, want) => {
   await w.write({ type: 'write', position: 4, data: t.buffer });
   await w.close();
   m.applied = { names: !!want.names, squads: want.squads || false, legends: !!want.legends, edges: want.edges || false, outs: want.outs || false,
-    pitch: want.pitch || false, sixes: want.sixes || false, weather: want.weather || false };
+    pitch: want.pitch || false, sixes: want.sixes || false, weather: want.weather || false, cpuSixes: want.cpuSixes || false };
   await saveMark();
   return target;
 }`;
 
-// want: 'status' | 'original' | { names, squads, legends, edges, outs, pitch, sixes, weather }. Returns the state afterwards: 'original', 'names',
+// want: 'status' | 'original' | { names, squads, legends, edges, outs, pitch, sixes, weather, cpuSixes }. Returns the state afterwards: 'original', 'names',
 // 'squads@<version>', 'names+squads@<version>+legends+edges@<version>+outs@<version>' and so on, 'unknown' or 'no-game'
 // (compare with stateFor). Legends teams need the current squads.
 function names(win, want) {
   if (typeof want === 'object') want = { names: !!want.names, squads: want.squads ? SQ_VER : false, legends: !!(want.squads && want.legends),
     edges: want.edges ? ED_VER : false, outs: want.outs ? OUT_VER : false, pitch: want.pitch ? PI_VER : false, sixes: want.sixes ? SX_VER : false,
-    weather: want.weather ? WX_VER : false };
+    weather: want.weather ? WX_VER : false, cpuSixes: want.cpuSixes ? CS_VER : false };
   const lib = `({ applySquads: ${applySquads.toString()}, legendsPatch: ${legendsPatch.toString()}, renameFsh: ${renameFsh.toString()}, tintFsh: ${tintFsh.toString()},
     FAST_BOWLERS: ${JSON.stringify(FAST_BOWLERS)}, fastBowlersPatch: ${fastBowlersPatch.toString()},
     edgesPatch: ${edgesPatch.toString()}, EDGES_ENTRY: ${JSON.stringify(EDGES_ENTRY)}, EDGE_TUNING: ${JSON.stringify(EDGE_TUNING)},
@@ -212,12 +218,13 @@ function names(win, want) {
     BATPAD_ENTRY: ${JSON.stringify(BATPAD_ENTRY)}, BATPAD_TUNING: ${JSON.stringify(BATPAD_TUNING)},
     PITCH_ENTRY: ${JSON.stringify(PITCH_ENTRY)}, PITCH_TUNING: ${JSON.stringify(PITCH_TUNING)}, pitchPatch: ${pitchPatch.toString()},
     SIXES_ENTRY: ${JSON.stringify(SIXES_ENTRY)}, SIXES_TUNING: ${JSON.stringify(SIXES_TUNING)}, sixesPatch: ${sixesPatch.toString()},
-    WEATHER_ENTRY: ${JSON.stringify(WEATHER_ENTRY)}, WEATHER_TUNING: ${JSON.stringify(WEATHER_TUNING)}, weatherPatch: ${weatherPatch.toString()} })`;
+    WEATHER_ENTRY: ${JSON.stringify(WEATHER_ENTRY)}, WEATHER_TUNING: ${JSON.stringify(WEATHER_TUNING)}, weatherPatch: ${weatherPatch.toString()},
+    CPU_SIXES: ${JSON.stringify(CPU_SIXES)}, shotPatch: ${shotPatch.toString()}, SHOT_FILES: ${JSON.stringify(SHOT_FILES)} })`;
   return win.webContents.executeJavaScript(
     `(${PAGE_JS})(${JSON.stringify(NAMES)}, ${JSON.stringify(SQUADS)}, ${lib}, ${JSON.stringify(KITS)}, ${JSON.stringify(want)})`);
 }
 const stateFor = (want) => [want.names && 'names', want.squads && 'squads@' + SQ_VER, want.squads && want.legends && 'legends',
   want.edges && 'edges@' + ED_VER, want.outs && 'outs@' + OUT_VER,
-  want.pitch && 'pitch@' + PI_VER, want.sixes && 'sixes@' + SX_VER, want.weather && 'weather@' + WX_VER].filter(Boolean).join('+') || 'original';
+  want.pitch && 'pitch@' + PI_VER, want.sixes && 'sixes@' + SX_VER, want.weather && 'weather@' + WX_VER, want.cpuSixes && 'cpusixes@' + CS_VER].filter(Boolean).join('+') || 'original';
 
 module.exports = { names, stateFor, COUNT: NAMES.length };
