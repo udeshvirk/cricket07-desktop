@@ -1,7 +1,7 @@
 {
   "name": "cricket07-mac",
   "productName": "Cricket 07 for Mac",
-  "version": "1.7.3",
+  "version": "1.8.0",
   "description": "Mac app for Dhaiwat's browser port of EA Sports Cricket 07: offline play, full screen, real player names, save backups",
   "license": "MIT",
   "repository": "github:udeshvirk/cricket07-desktop",
