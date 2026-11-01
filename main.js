@@ -43,7 +43,7 @@ const ENGINE_DIR = () => userFile('engine');
 // ---------------------------------------------------------------- settings
 
 const SETTINGS = () => userFile('settings.json');
-const DEFAULTS = { realNames: true, squads2026: false, legends2006: false, realEdges: false, realOuts: false, realPitches: false, moreSixes: false, fxaa: true, aniso: true, mips: true, sharpen: true, vivid: false, wide: true, msaa: true, upscale: true, auto: true, fps: false, skipIntro: true, autoUpdate: true, tabKeys: false };
+const DEFAULTS = { realNames: true, squads2026: false, legends2006: false, realEdges: false, realOuts: false, realPitches: false, moreSixes: false, moreWeather: false, fxaa: true, aniso: true, mips: true, sharpen: true, vivid: false, wide: true, msaa: true, upscale: true, auto: true, fps: false, skipIntro: true, autoUpdate: true, tabKeys: false };
 const settings = () => { try { return { ...DEFAULTS, ...JSON.parse(fs.readFileSync(SETTINGS(), 'utf8')) }; } catch { return { ...DEFAULTS }; } };
 const saveSettings = (s) => fs.writeFileSync(SETTINGS(), JSON.stringify(s, null, 2));
 // Engines from 26 Oct 2026 have their own widescreen, on unless ?4x3. It draws the bar under the mini-screen too
@@ -270,7 +270,7 @@ async function applyIntroSetting() {
 async function applyNamesSetting() {
   try {
     const s = settings(), want = { names: !!s.realNames, squads: !!s.squads2026, legends: !!s.legends2006, edges: !!s.realEdges, outs: !!s.realOuts,
-      pitch: !!s.realPitches, sixes: !!s.moreSixes };
+      pitch: !!s.realPitches, sixes: !!s.moreSixes, weather: !!s.moreWeather };
     if ((await names(win, 'status')) !== stateFor(want)) {
       await win.webContents.executeJavaScript(`document.getElementById('status') && (document.getElementById('status').textContent = 'Updating players…'); 0`);
       await names(win, want);

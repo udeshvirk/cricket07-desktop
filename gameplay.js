@@ -1,5 +1,6 @@
 // Gameplay tuning, applied by names.js to the app's copy of Data/data.gob (settings realEdges, "Realistic edges",
-// realOuts, "Realistic dismissals", realPitches, "Livelier pitches", and moreSixes, "More sixes in short games").
+// realOuts, "Realistic dismissals", realPitches, "Livelier pitches", moreSixes, "More sixes in short games", and
+// moreWeather, "Weather variety").
 //
 // The edge table (an XML file in the archive, written by HB Studios) scales each shot's chance of an edge, by
 // batter (Human, CPU), match length, difficulty and timing zone (Start, Early, Ideal, Late, End; Start and End
@@ -150,5 +151,34 @@ function sixesPatch(bytes, TUNING) {
   return res;
 }
 
-if (typeof module !== 'undefined') module.exports = { EDGES_ENTRY, EDGE_TUNING, MISSES_ENTRY, MISS_TUNING, BATPAD_ENTRY, BATPAD_TUNING, edgesPatch,
+// Weather variety (moreWeather): the weather table says which weather, pitch and temperature each ground can have. It
+// leaves out overcast days at most grounds outside England and New Zealand, and humid ones in England and New Zealand.
+// This allows them; night games and pitch types are left alone (a ground without them may lack the graphics).
+const WEATHER_ENTRY = '101ed25c9898b17a3d7be05a8cf97d95.xml';
+const WEATHER_TUNING = {
+  Overcast: ['adelaide', 'brisbane', 'perth', 'kolkata', 'dhaka', 'cape town', 'johannesburg', 'kandy', 'barbados', 'harare'],
+  Humid: ['birmingham', 'bristol', 'canterbury', 'cardiff', 'chelmsford', 'chester-le-street', 'derby', 'hove', 'leeds', 'leicester',
+    "lord's", 'manchester', 'northampton', 'nottingham', 'southampton', 'taunton', 'the oval', 'worcester', 'auckland', 'christchurch'],
+  Mild: ['adelaide', 'brisbane', 'hobart', 'melbourne', 'perth', 'sydney', 'barbados'],
+};
+function weatherPatch(bytes, TUNING) {
+  let text = '';
+  for (let i = 0; i < bytes.length; i++) text += String.fromCharCode(bytes[i]);
+  let seen = 0;
+  const out = text.split('\n').map((line) => {
+    const m = /<stadium\s+Name\s*=\s*"([^"]+)"/.exec(line);
+    if (!m) return line;
+    seen++;
+    let l = line;
+    for (const [cond, grounds] of Object.entries(TUNING))
+      if (grounds.includes(m[1])) l = l.replace(new RegExp(`(\\s${cond}\\s*=\\s*")0"`), '$11"');
+    return l;
+  }).join('\n');
+  if (seen < 30) return null;
+  const res = new Uint8Array(out.length);
+  for (let i = 0; i < out.length; i++) res[i] = out.charCodeAt(i) & 255;
+  return res;
+}
+
+if (typeof module !== 'undefined') module.exports = { WEATHER_ENTRY, WEATHER_TUNING, weatherPatch, EDGES_ENTRY, EDGE_TUNING, MISSES_ENTRY, MISS_TUNING, BATPAD_ENTRY, BATPAD_TUNING, edgesPatch,
   PITCH_ENTRY, PITCH_TUNING, pitchPatch, SIXES_ENTRY, SIXES_TUNING, sixesPatch };
