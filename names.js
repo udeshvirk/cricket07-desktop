@@ -11,9 +11,15 @@ const path = require('path');
 const NAMES = JSON.parse(fs.readFileSync(path.join(__dirname, 'real-names.json'), 'utf8'));
 const SQUADS = JSON.parse(fs.readFileSync(path.join(__dirname, 'squads-2026.json'), 'utf8'));
 const { applySquads, legendsPatch, tintFsh, FAST_BOWLERS, fastBowlersPatch } = require('./squads');
-const { EDGES_ENTRY, EDGE_TUNING, edgesPatch } = require('./gameplay');
+const { EDGES_ENTRY, EDGE_TUNING, MISSES_ENTRY, MISS_TUNING, BATPAD_ENTRY, BATPAD_TUNING, edgesPatch,
+  PITCH_ENTRY, PITCH_TUNING, pitchPatch, SIXES_ENTRY, SIXES_TUNING, sixesPatch } = require('./gameplay');
 // Fingerprint of the edge tuning: a game patched with older values is rebuilt when it changes
 const ED_VER = require('crypto').createHash('md5').update(JSON.stringify(EDGE_TUNING) + edgesPatch.toString()).digest('hex').slice(0, 8);
+// Same for the misses and bat-pad tunings (Realistic dismissals)
+const OUT_VER = require('crypto').createHash('md5').update(JSON.stringify([MISS_TUNING, BATPAD_TUNING]) + edgesPatch.toString()).digest('hex').slice(0, 8);
+// ... and the pitch and six-hitting tunings
+const PI_VER = require('crypto').createHash('md5').update(JSON.stringify(PITCH_TUNING) + pitchPatch.toString()).digest('hex').slice(0, 8);
+const SX_VER = require('crypto').createHash('md5').update(JSON.stringify(SIXES_TUNING) + sixesPatch.toString()).digest('hex').slice(0, 8);
 const md5 = (t) => require('crypto').createHash('md5').update(t).digest('hex');
 // Legends kits: each Legends side's slot kit files (archive names are the MD5 of the path without its extension)
 // get the country's kit, recoloured (tint) or as it is
@@ -24,10 +30,12 @@ const KITS = SQUADS.legends.teams.flatMap((t) => KIT_FILES.map((k) => ({ entry: 
 const SQ_VER = require('crypto').createHash('md5').update(JSON.stringify(SQUADS) + applySquads.toString() + legendsPatch.toString() + tintFsh.toString() + fastBowlersPatch.toString()).digest('hex').slice(0, 8);
 
 const PAGE_JS = `async (NAMES, SQUADS, LIB, KITS, want) => {
-  const { applySquads, legendsPatch, tintFsh, FAST_BOWLERS, fastBowlersPatch, edgesPatch, EDGES_ENTRY, EDGE_TUNING } = LIB;
+  const { applySquads, legendsPatch, tintFsh, FAST_BOWLERS, fastBowlersPatch, edgesPatch, EDGES_ENTRY, EDGE_TUNING, MISSES_ENTRY, MISS_TUNING, BATPAD_ENTRY, BATPAD_TUNING,
+    PITCH_ENTRY, PITCH_TUNING, pitchPatch, SIXES_ENTRY, SIXES_TUNING, sixesPatch } = LIB;
   const ENTRY = '113964e05e69ab31d264fb8f15c58e5c.cdf', REC = 360, MARK = '.names-original.json';
-  // team list, kits, menu screens, kit textures (Legends); the fast-bowler list (current squads); the edge table (Realistic edges)
-  const EXTRA = legendsPatch('entries').concat(KITS.map((k) => k.entry), FAST_BOWLERS, EDGES_ENTRY);
+  // team list, kits, menu screens, kit textures (Legends); the fast-bowler list (current squads); the edge table (Realistic edges);
+  // the misses and bat-pad tables (Realistic dismissals); deliveries (Livelier pitches); six hitting (More sixes)
+  const EXTRA = legendsPatch('entries').concat(KITS.map((k) => k.entry), FAST_BOWLERS, EDGES_ENTRY, MISSES_ENTRY, BATPAD_ENTRY, PITCH_ENTRY, SIXES_ENTRY);
   const root = await navigator.storage.getDirectory();
   let dir, fh;
   try { dir = await root.getDirectoryHandle('c07game'); fh = await (await dir.getDirectoryHandle('Data')).getFileHandle('data.gob'); }
@@ -80,7 +88,8 @@ const PAGE_JS = `async (NAMES, SQUADS, LIB, KITS, want) => {
   const dec = new TextDecoder('latin1');
   const nameAt = (c, i) => { const b = c.subarray(i * REC + 8, i * REC + 24); const z = b.indexOf(0); return dec.decode(z < 0 ? b : b.subarray(0, z)); };
   const key = (a) => a.pending ? 'partial' : [a.names && 'names', a.squads && (a.squads === true ? 'squads' : 'squads@' + a.squads),
-    a.legends && 'legends', a.edges && 'edges@' + a.edges].filter(Boolean).join('+') || 'original';
+    a.legends && 'legends', a.edges && 'edges@' + a.edges, a.outs && 'outs@' + a.outs,
+    a.pitch && 'pitch@' + a.pitch, a.sixes && 'sixes@' + a.sixes].filter(Boolean).join('+') || 'original';
 
   // What is applied now: the marker says (written with each change); an older app version's marker didn't
   // record it, so then the names themselves tell.
@@ -150,6 +159,10 @@ const PAGE_JS = `async (NAMES, SQUADS, LIB, KITS, want) => {
     }
     const changed = n === FAST_BOWLERS ? want.squads && fastBowlersPatch(await original(...m.extra[n]), out, SQUADS)
       : n === EDGES_ENTRY ? want.edges && edgesPatch(await original(...m.extra[n]), EDGE_TUNING)
+      : n === MISSES_ENTRY ? want.outs && edgesPatch(await original(...m.extra[n]), MISS_TUNING)
+      : n === BATPAD_ENTRY ? want.outs && edgesPatch(await original(...m.extra[n]), BATPAD_TUNING)
+      : n === PITCH_ENTRY ? want.pitch && pitchPatch(await original(...m.extra[n]), PITCH_TUNING)
+      : n === SIXES_ENTRY ? want.sixes && sixesPatch(await original(...m.extra[n]), SIXES_TUNING)
       : want.legends && legendsPatch(n, await original(...m.extra[n]), SQUADS);
     if (changed) files.push([where[n].pos, pack(changed)]);
     else resets.push([where[n].pos, ...m.extra[n]]);
@@ -169,24 +182,30 @@ const PAGE_JS = `async (NAMES, SQUADS, LIB, KITS, want) => {
   const t = new DataView(new ArrayBuffer(4)); t.setUint32(0, last, true);   // the archive's length
   await w.write({ type: 'write', position: 4, data: t.buffer });
   await w.close();
-  m.applied = { names: !!want.names, squads: want.squads || false, legends: !!want.legends, edges: want.edges || false };
+  m.applied = { names: !!want.names, squads: want.squads || false, legends: !!want.legends, edges: want.edges || false, outs: want.outs || false,
+    pitch: want.pitch || false, sixes: want.sixes || false };
   await saveMark();
   return target;
 }`;
 
-// want: 'status' | 'original' | { names, squads, legends, edges }. Returns the state afterwards: 'original', 'names',
-// 'squads@<version>', 'names+squads@<version>+legends+edges@<version>' and so on, 'unknown' or 'no-game'
+// want: 'status' | 'original' | { names, squads, legends, edges, outs, pitch, sixes }. Returns the state afterwards: 'original', 'names',
+// 'squads@<version>', 'names+squads@<version>+legends+edges@<version>+outs@<version>' and so on, 'unknown' or 'no-game'
 // (compare with stateFor). Legends teams need the current squads.
 function names(win, want) {
   if (typeof want === 'object') want = { names: !!want.names, squads: want.squads ? SQ_VER : false, legends: !!(want.squads && want.legends),
-    edges: want.edges ? ED_VER : false };
+    edges: want.edges ? ED_VER : false, outs: want.outs ? OUT_VER : false, pitch: want.pitch ? PI_VER : false, sixes: want.sixes ? SX_VER : false };
   const lib = `({ applySquads: ${applySquads.toString()}, legendsPatch: ${legendsPatch.toString()}, tintFsh: ${tintFsh.toString()},
     FAST_BOWLERS: ${JSON.stringify(FAST_BOWLERS)}, fastBowlersPatch: ${fastBowlersPatch.toString()},
-    edgesPatch: ${edgesPatch.toString()}, EDGES_ENTRY: ${JSON.stringify(EDGES_ENTRY)}, EDGE_TUNING: ${JSON.stringify(EDGE_TUNING)} })`;
+    edgesPatch: ${edgesPatch.toString()}, EDGES_ENTRY: ${JSON.stringify(EDGES_ENTRY)}, EDGE_TUNING: ${JSON.stringify(EDGE_TUNING)},
+    MISSES_ENTRY: ${JSON.stringify(MISSES_ENTRY)}, MISS_TUNING: ${JSON.stringify(MISS_TUNING)},
+    BATPAD_ENTRY: ${JSON.stringify(BATPAD_ENTRY)}, BATPAD_TUNING: ${JSON.stringify(BATPAD_TUNING)},
+    PITCH_ENTRY: ${JSON.stringify(PITCH_ENTRY)}, PITCH_TUNING: ${JSON.stringify(PITCH_TUNING)}, pitchPatch: ${pitchPatch.toString()},
+    SIXES_ENTRY: ${JSON.stringify(SIXES_ENTRY)}, SIXES_TUNING: ${JSON.stringify(SIXES_TUNING)}, sixesPatch: ${sixesPatch.toString()} })`;
   return win.webContents.executeJavaScript(
     `(${PAGE_JS})(${JSON.stringify(NAMES)}, ${JSON.stringify(SQUADS)}, ${lib}, ${JSON.stringify(KITS)}, ${JSON.stringify(want)})`);
 }
 const stateFor = (want) => [want.names && 'names', want.squads && 'squads@' + SQ_VER, want.squads && want.legends && 'legends',
-  want.edges && 'edges@' + ED_VER].filter(Boolean).join('+') || 'original';
+  want.edges && 'edges@' + ED_VER, want.outs && 'outs@' + OUT_VER,
+  want.pitch && 'pitch@' + PI_VER, want.sixes && 'sixes@' + SX_VER].filter(Boolean).join('+') || 'original';
 
 module.exports = { names, stateFor, COUNT: NAMES.length };

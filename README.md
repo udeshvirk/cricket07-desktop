@@ -79,6 +79,14 @@ The game only remembers changes you save there.
   Root, Babar, Cummins and the rest for the 10 main teams. Switch it off for the original 2006 squads.
 - **Realistic edges, if you want a harder game.** Switch on **Realistic edges** in Settings: a mistimed shot finds the
   edge more often and a well-timed one less, for you and the CPU, in every format.
+- **Realistic dismissals.** Switch on **Realistic dismissals** in Settings: a mistimed shot is beaten more often, so
+  batters (you and the CPU) are bowled, LBW or caught off bat and pad more, and a well-timed shot less.
+- **Livelier pitches.** Switch on **Livelier pitches**: dusty pitches turn more and keep low for fast bowlers, green and
+  damp pitches help seam bowlers more.
+- **More sixes in short games.** Switch on **More sixes in short games**: sixes are easier to time in limited-overs
+  matches, as in today's cricket. Test matches are unchanged.
+- **Today's fast bowlers at their real pace.** With current squads on, Bumrah, Starc, Wood, Nortje, Haris Rauf and
+  the other quicks bowl at their own top speed.
 - **Legends teams.** With current squads on, switch on **Legends teams** to add a Legends category: India Legends with
   Tendulkar and Dravid, Australia Legends with Ponting and Warne, and the other 2006 sides. Play India today against
   Pakistan Legends.
