@@ -85,6 +85,8 @@ The game only remembers changes you save there.
   damp pitches help seam bowlers more.
 - **More sixes in short games.** Switch on **More sixes in short games**: sixes are easier to time in limited-overs
   matches, as in today's cricket. Test matches are unchanged.
+- **Fewer CPU slogs.** Switch on **Fewer CPU slogs**: the CPU goes for six less often, and its six attempts find the
+  edge more often, so a tail-ender can't slog your best bowler around. Your own shots are unchanged.
 - **Today's fast bowlers at their real pace.** With current squads on, Bumrah, Starc, Wood, Nortje, Haris Rauf and
   the other quicks bowl at their own top speed.
 - **Legends teams.** With current squads on, switch on **Legends teams** to add a Legends category: India Legends with

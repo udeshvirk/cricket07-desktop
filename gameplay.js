@@ -1,5 +1,6 @@
 // Gameplay tuning, applied by names.js to the app's copy of Data/data.gob (settings realEdges, "Realistic edges",
-// realOuts, "Realistic dismissals", realPitches, "Livelier pitches", and moreSixes, "More sixes in short games").
+// realOuts, "Realistic dismissals", realPitches, "Livelier pitches", moreSixes, "More sixes in short games", and
+// cpuSixes, "Fewer CPU slogs").
 //
 // The edge table (an XML file in the archive, written by HB Studios) scales each shot's chance of an edge, by
 // batter (Human, CPU), match length, difficulty and timing zone (Start, Early, Ideal, Late, End; Start and End
@@ -150,5 +151,29 @@ function sixesPatch(bytes, TUNING) {
   return res;
 }
 
-if (typeof module !== 'undefined') module.exports = { EDGES_ENTRY, EDGE_TUNING, MISSES_ENTRY, MISS_TUNING, BATPAD_ENTRY, BATPAD_TUNING, edgesPatch,
+// Fewer CPU slogs (cpuSixes): the CPU doesn't time its shots, so the six table doesn't touch its sixes. Each of the
+// game's shots (830 XML files, listed in shot-attributes.json) has AI values for an attempt to hit it for six:
+// EdgeModifier6 (the chance of an edge or miscue; the original is the same as the ordinary shot's, so a slog risks
+// nothing extra) and Reward6 (how much the CPU values the attempt). Here a six attempt edges 50% more often, and the
+// CPU values it a quarter less. Your own shots are unchanged.
+const CPU_SIXES = { edge6: 1.5, reward6: 0.75 };
+// One shot file with those changes (bytes in, bytes out), or null if it has no AI line laid out as expected.
+function shotPatch(bytes, SHOTS) {
+  let text = '';
+  for (let i = 0; i < bytes.length; i++) text += String.fromCharCode(bytes[i]);
+  const line = /<AI\s[^>]*\/>/.exec(text);
+  if (!line) return null;
+  const num = (name) => { const m = new RegExp('\\s' + name + '="(-?[0-9.]+)"').exec(line[0]); return m ? +m[1] : null; };
+  const edge = num('EdgeModifier'), reward6 = num('Reward6');
+  if (edge === null || num('EdgeModifier6') === null || reward6 === null) return null;
+  const ai = line[0]
+    .replace(/(\sEdgeModifier6=")-?[0-9.]+"/, (_m, a) => `${a}${Math.round(edge * SHOTS.edge6)}"`)
+    .replace(/(\sReward6=")-?[0-9.]+"/, (_m, a) => `${a}${(reward6 * SHOTS.reward6).toFixed(6)}"`);
+  const out = text.slice(0, line.index) + ai + text.slice(line.index + line[0].length);
+  const res = new Uint8Array(out.length);
+  for (let i = 0; i < out.length; i++) res[i] = out.charCodeAt(i) & 255;
+  return res;
+}
+
+if (typeof module !== 'undefined') module.exports = { CPU_SIXES, shotPatch, EDGES_ENTRY, EDGE_TUNING, MISSES_ENTRY, MISS_TUNING, BATPAD_ENTRY, BATPAD_TUNING, edgesPatch,
   PITCH_ENTRY, PITCH_TUNING, pitchPatch, SIXES_ENTRY, SIXES_TUNING, sixesPatch };
