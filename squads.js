@@ -198,4 +198,27 @@ function tintFsh(d, tint) {
   return o;
 }
 
-if (typeof module !== 'undefined') module.exports = { applySquads, legendsPatch, tintFsh };
+// The game's list of extra-fast bowlers (Data/data.gob) gives each one a top speed (MaxFake mph for the overlay,
+// MaxReal m/s for the ball), naming them by player record. The current squads put each 2026 player into a 2006
+// player's record, so that player inherited the speed: a batter or spinner bowling at Shoaib Akhtar's 100 mph or
+// Brett Lee's 99. This returns the list (bytes in, bytes out) without the entries whose record now holds a 2026
+// player, or null if it isn't laid out as expected. Legends sides keep theirs: those players keep their records.
+const FAST_BOWLERS = '6db25817c37163921676c2d9be05214e.xml';
+function fastBowlersPatch(bytes, out, SQUADS) {
+  const TEAMS = 432004, TEAM = 2808;
+  let text = '';
+  for (let i = 0; i < bytes.length; i++) text += String.fromCharCode(bytes[i]);
+  const taken = new Set();   // records that now hold the 2026 squads
+  for (const t of SQUADS.teams) for (let k = 0; k < 20; k++) {
+    const o = TEAMS + t.team * TEAM + 2 * k;
+    taken.add(((out[o] | out[o + 1] << 8) << 16) >> 16);
+  }
+  const lines = text.split('\n');
+  if (!lines.some((l) => /<Bowler\s+ID\s*=/.test(l))) return null;
+  const kept = lines.filter((l) => { const m = /<Bowler\s+ID\s*="(\d+)"/.exec(l); return !m || !taken.has(+m[1]); }).join('\n');
+  const res = new Uint8Array(kept.length);
+  for (let i = 0; i < kept.length; i++) res[i] = kept.charCodeAt(i) & 255;
+  return res;
+}
+
+if (typeof module !== 'undefined') module.exports = { applySquads, legendsPatch, tintFsh, FAST_BOWLERS, fastBowlersPatch };
