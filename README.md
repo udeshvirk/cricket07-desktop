@@ -85,6 +85,8 @@ The game only remembers changes you save there.
   damp pitches help seam bowlers more.
 - **More sixes in short games.** Switch on **More sixes in short games**: sixes are easier to time in limited-overs
   matches, as in today's cricket. Test matches are unchanged.
+- **Weather variety.** Switch on **Weather variety**: overcast days at grounds that never had them in the original
+  (Australia, India, Bangladesh, South Africa, Sri Lanka, the West Indies, Zimbabwe), humid days in England and New Zealand.
 - **Today's fast bowlers at their real pace.** With current squads on, Bumrah, Starc, Wood, Nortje, Haris Rauf and
   the other quicks bowl at their own top speed.
 - **Legends teams.** With current squads on, switch on **Legends teams** to add a Legends category: India Legends with
