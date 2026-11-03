@@ -396,7 +396,7 @@ let settingsWin = null;
 function openSettings() {
   if (settingsWin) { settingsWin.focus(); return; }
   settingsWin = new BrowserWindow({
-    parent: win, modal: true, show: false, width: 560, height: Math.min(1180, screen.getDisplayMatching(win.getBounds()).workAreaSize.height - 60), resizable: false,
+    parent: win, modal: true, show: false, width: 560, height: Math.min(780, screen.getDisplayMatching(win.getBounds()).workAreaSize.height - 60), resizable: false,
     backgroundColor: '#0b130d', title: 'Settings', autoHideMenuBar: true,
     webPreferences: { contextIsolation: true, sandbox: true, preload: path.join(__dirname, 'settings-preload.js') },
   });

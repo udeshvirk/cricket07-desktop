@@ -11,10 +11,34 @@
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.45 -apple-system, system-ui, sans-serif;
-    -webkit-user-select: none; user-select: none; overflow-y: auto; }
-  main { padding: 22px 24px 18px; }
-  h1 { margin: 0 0 2px; font-size: 18px; }
-  .sub { margin: 0 0 18px; color: var(--muted); font-size: 13px; }
+    -webkit-user-select: none; user-select: none; }
+  html, body { height: 100%; overflow: hidden; }
+  main { height: 100%; display: flex; flex-direction: column; }
+  header { padding: 20px 24px 0; border-bottom: 1px solid var(--line); }
+  h1 { margin: 0 0 12px; font-size: 18px; }
+  nav { display: flex; gap: 4px; }
+  nav button { position: relative; background: none; border: 0; border-radius: 8px 8px 0 0; padding: 8px 12px 10px;
+    color: var(--muted); font-weight: 600; }
+  nav button:hover { background: rgba(255, 255, 255, .04); color: var(--fg); }
+  nav button[aria-selected="true"] { color: var(--fg); box-shadow: inset 0 -2px 0 var(--accent); }
+  .dot { position: absolute; top: 7px; right: 4px; width: 7px; height: 7px; border-radius: 50%; background: #e6c46a; }
+  #pages { flex: 1; overflow-y: auto; padding: 16px 24px 18px; }
+  section { display: none; }
+  section.on { display: block; }
+  .sub { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+  section > h2:first-child { margin-top: 0; }
+  #bottom { padding: 0 24px 16px; border-top: 1px solid var(--line); }
+  .row.off { opacity: .45; }
+  details { margin-top: 14px; }
+  summary { list-style: none; cursor: pointer; padding: 6px 0; font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted); }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: "▸"; display: inline-block; width: 14px; transition: transform .15s; }
+  details[open] summary::before { transform: rotate(90deg); }
+  summary small { margin-left: 6px; text-transform: none; letter-spacing: 0; font-size: 12px; opacity: .8; }
+  summary:hover { color: var(--fg); }
+  summary:focus-visible { outline: 2px solid var(--accent-hi); outline-offset: 2px; border-radius: 4px; }
+  details .card { margin-top: 6px; }
   h2 { margin: 18px 0 6px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
   .row { display: flex; align-items: center; gap: 14px; padding: 11px 14px; border-top: 1px solid var(--line); }
@@ -42,93 +66,139 @@
   button.primary { background: var(--accent); border-color: transparent; color: #04110a; font-weight: 700; }
   button.primary:hover { background: var(--accent-hi); }
   .buttons { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 14px; }
-  #restart { display: none; align-items: center; gap: 12px; margin-top: 14px; padding: 10px 14px; border-radius: 12px;
+  #restart { display: none; align-items: center; gap: 12px; margin-top: 12px; padding: 10px 14px; border-radius: 12px;
     background: rgba(230, 196, 106, .12); border: 1px solid rgba(230, 196, 106, .35); }
   #restart.show { display: flex; }
   #restart span { flex: 1; font-size: 13px; }
-  footer { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; color: var(--muted); font-size: 12px; }
+  footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; color: var(--muted); font-size: 12px; }
   kbd { font: 600 11px ui-monospace, Menlo, monospace; padding: 1px 5px; border-radius: 4px; border: 1px solid var(--line); background: #1a2a1e; color: var(--fg); }
 </style>
 </head>
 <body>
 <main>
-  <h1>Settings</h1>
-  <p class="sub">Changes are saved straight away.</p>
+  <header>
+    <h1>Settings</h1>
+    <nav id="tabs" role="tablist">
+      <button role="tab" data-tab="teams">Teams</button>
+      <button role="tab" data-tab="gameplay">Gameplay</button>
+      <button role="tab" data-tab="picture">Picture</button>
+      <button role="tab" data-tab="saves">Saves</button>
+      <button role="tab" data-tab="app">App<i class="dot hidden" id="app-dot"></i></button>
+    </nav>
+  </header>
 
-  <h2>Game</h2>
-  <div class="card" id="players"></div>
+  <div id="pages">
+    <section data-page="teams">
+      <p class="sub">Who plays: names and squads. Changes are saved straight away.</p>
+      <div class="card" id="teams"></div>
+    </section>
 
-  <h2>Picture</h2>
-  <div class="card" id="graphics"></div>
-  <div id="restart"><span>Some changes apply after the game restarts. Save your profile first if you changed anything in the game.</span>
-    <button class="primary" data-action="restart">Restart Game</button></div>
+    <section data-page="gameplay">
+      <p class="sub">Optional changes to how matches play. All are off in the original game.</p>
+      <div class="card" id="gameplay"></div>
+    </section>
 
-  <h2>Screenshots &amp; saves</h2>
-  <div class="card">
-    <div class="buttons">
-      <button data-action="screenshot">Take Screenshot</button>
-      <button data-action="screenshots">Show Screenshots</button>
-    </div>
-    <div class="buttons" style="border-top:1px solid var(--line)">
-      <button data-action="backup">Back Up Saves Now</button>
-      <button data-action="restore">Restore Saves…</button>
-      <button data-action="backups">Show Backups</button>
-    </div>
+    <section data-page="picture">
+      <p class="sub">Most changes show straight away.</p>
+      <div class="card" id="picture"></div>
+      <details id="more">
+        <summary>Fine-tuning <small>sharpness, shimmer, frame rate</small></summary>
+        <div class="card" id="picture-more"></div>
+      </details>
+    </section>
+
+    <section data-page="saves">
+      <h2>Saves</h2>
+      <div class="card">
+        <div class="row"><div class="text"><b>Backups</b><small>Your saves are backed up each time the game starts. Restore one if a save goes missing.</small></div></div>
+        <div class="buttons" style="border-top:1px solid var(--line)">
+          <button data-action="backup">Back Up Saves Now</button>
+          <button data-action="restore">Restore Saves…</button>
+          <button data-action="backups">Show Backups</button>
+        </div>
+      </div>
+      <h2>Screenshots</h2>
+      <div class="card">
+        <div class="buttons">
+          <button data-action="screenshot">Take Screenshot</button>
+          <button data-action="screenshots">Show Screenshots</button>
+        </div>
+      </div>
+    </section>
+
+    <section data-page="app">
+      <h2>Starting &amp; keys</h2>
+      <div class="card" id="startup"></div>
+
+      <h2>Updates</h2>
+      <div class="card">
+        <div class="row"><div class="text"><b>This app</b><small id="app-status">…</small></div>
+          <button class="primary hidden" id="app-download" data-action="update-download">Download</button></div>
+        <div class="row"><div class="text"><b>Game engine</b><small id="engine-status">…</small></div>
+          <button class="primary hidden" id="engine-update">Update Engine</button></div>
+        <label class="row"><div class="text"><b>Check automatically</b><small>Once a day, a little while after the game starts.</small></div>
+          <span class="sw"><input type="checkbox" id="auto-update"><span></span></span></label>
+        <div class="buttons" style="border-top:1px solid var(--line)"><button id="check-now">Check Now</button><small id="checked" style="align-self:center;color:var(--muted)"></small></div>
+      </div>
+
+      <h2>Problems</h2>
+      <div class="card">
+        <div class="row hidden" id="safe-graphics"><div class="text"><b>Safe graphics is on</b><small>The game's picture didn't appear with normal settings, so safer ones are used. After updating your graphics driver, try normal graphics again.</small></div>
+          <button class="primary" data-action="graphics-normal">Try Normal Graphics</button></div>
+        <div class="row"><div class="text"><b>Log file</b><small>A record of what happened when the app last started. Attach it (log.txt) when you report a problem.</small></div>
+          <button data-action="show-log">Show Log File</button></div>
+      </div>
+    </section>
   </div>
 
-  <h2>Updates</h2>
-  <div class="card">
-    <div class="row"><div class="text"><b>This app</b><small id="app-status">…</small></div>
-      <button class="primary hidden" id="app-download" data-action="update-download">Download</button></div>
-    <div class="row"><div class="text"><b>Game engine</b><small id="engine-status">…</small></div>
-      <button class="primary hidden" id="engine-update">Update Engine</button></div>
-    <label class="row"><div class="text"><b>Check automatically</b><small>Once a day, a little while after the game starts.</small></div>
-      <span class="sw"><input type="checkbox" id="auto-update"><span></span></span></label>
-    <div class="buttons" style="border-top:1px solid var(--line)"><button id="check-now">Check Now</button><small id="checked" style="align-self:center;color:var(--muted)"></small></div>
+  <div id="bottom">
+    <div id="restart"><span>Some changes apply after the game restarts. Save your profile first if you changed anything in the game.</span>
+      <button class="primary" data-action="restart">Restart Game</button></div>
+    <footer>
+      <span id="keys"></span>
+      <button class="primary" data-action="close">Done</button>
+    </footer>
   </div>
-
-  <h2>Problems</h2>
-  <div class="card">
-    <div class="row hidden" id="safe-graphics"><div class="text"><b>Safe graphics is on</b><small>The game's picture didn't appear with normal settings, so safer ones are used. After updating your graphics driver, try normal graphics again.</small></div>
-      <button class="primary" data-action="graphics-normal">Try Normal Graphics</button></div>
-    <div class="row"><div class="text"><b>Log file</b><small>A record of what happened when the app last started. Attach it (log.txt) when you report a problem.</small></div>
-      <button data-action="show-log">Show Log File</button></div>
-  </div>
-
-  <footer>
-    <span id="keys"></span>
-    <button class="primary" data-action="close">Done</button>
-  </footer>
 </main>
 <script>
-  const PLAYERS = [
+  // [setting, title, hint, needs a restart]; each list fills one card
+  const TEAMS = [
     ['realNames', 'Real player names', 'Real names for the 394 players the game gave made-up names (S.Tendehar becomes S.Tendulkar).', true],
     ['squads2026', 'Current squads (2026)', 'Kohli, Bumrah, Root, Babar and today\'s other players for the 10 main teams. Switch off for the original 2006 squads.', true],
     ['legends2006', 'Legends teams', 'With current squads on: a Legends category (in place of Australian State) with the 10 teams as they were in 2006, like India Legends with Tendulkar and Dravid.', true],
+  ];
+  const GAMEPLAY = [
     ['realEdges', 'Realistic edges', 'Mistimed shots find the edge more often and well-timed ones less, for you and the CPU, in every format. The CPU no longer edges less on harder difficulties.', true],
     ['realOuts', 'Realistic dismissals', 'Mistimed shots are beaten more often (bowled, LBW, bat-pad catches) and well-timed ones less. The CPU is easier to get out on easy difficulties; you are on hard ones.', true],
     ['realPitches', 'Livelier pitches', 'Dusty pitches turn more and keep low for fast bowlers; green and damp pitches help seam bowlers more.', true],
     ['moreSixes', 'More sixes in short games', 'In limited-overs matches, sixes are easier to time, as in today\'s T20 and one-day cricket. Test matches are unchanged.', true],
     ['moreWeather', 'Weather variety', 'Overcast days at grounds that never had them (Australia, India, South Africa and more), humid days in England and New Zealand.', true],
-    ['skipIntro', 'Skip intro movie', 'Leaves out the EA Sports logo movie at startup, so the game starts a few seconds sooner.', true],
-    ['tabKeys', 'Tab in menus', 'Tab and Shift+Tab go to the next and previous item in the game\'s menus, as the arrow keys do. In a match, Tab moves too.', false],
   ];
-  const OPTIONS = [
-    ['auto', 'Keep the game smooth', 'If this computer can\'t keep full speed in a match, the heaviest effects ease off a little. Fast computers keep full quality.', false],
+  const PICTURE = [
+    ['auto', 'Keep the game smooth', 'If this computer can\'t keep full speed, the heaviest effects ease off a little.', false],
     ['wide', 'Widescreen', 'Shows more of the ground instead of stretching the picture.', true],
-    ['msaa', 'Extra-smooth edges', 'True anti-aliasing (4× MSAA): clean edges on players, stumps and lines.', true],
+    ['msaa', 'Extra-smooth edges', 'Clean edges on players, stumps and lines (4× anti-aliasing).', true],
+    ['upscale', 'HD textures', 'Kits, faces, logos and menus upscaled 2× for a crisper look.', true],
+    ['vivid', 'Vivid colours', 'Richer greens and reds.', false],
+  ];
+  const PICTURE_MORE = [
     ['fxaa', 'Smooth edges (light)', 'A lighter edge softening, used when Extra-smooth edges is off.', false],
     ['sharpen', 'Sharpen', 'Makes the picture a little crisper.', false],
-    ['vivid', 'Vivid colours', 'Richer greens and reds.', false],
-    ['upscale', 'HD textures', 'Smaller textures (kits, faces, logos, menus) upscaled 2× for a crisper look.', true],
     ['aniso', 'Sharper textures', 'Keeps the pitch and outfield crisp at an angle.', true],
     ['mips', 'Less shimmer', 'Stops distant crowds and boards flickering.', true],
     ['fps', 'Show frame rate', 'Shows frames per second in the corner (60 is full speed).', false],
   ];
-  const box = document.getElementById('graphics');
+  const STARTUP = [
+    ['skipIntro', 'Skip intro movie', 'Leaves out the EA Sports logo movie at startup, so the game starts a few seconds sooner.', true],
+    ['tabKeys', 'Tab in menus', 'Tab and Shift+Tab go to the next and previous item in the game\'s menus, as the arrow keys do. In a match, Tab moves too.', false],
+  ];
+  const CARDS = [[TEAMS, 'teams'], [GAMEPLAY, 'gameplay'], [PICTURE, 'picture'], [PICTURE_MORE, 'picture-more'], [STARTUP, 'startup']];
+  const ALL = CARDS.flatMap(([list]) => list);
+  // a setting that only works with another one on
+  const NEEDS = { legends2006: 'squads2026' };
   const restart = document.getElementById('restart');
   let initial = {};
-  const needsRestart = (cur) => [...PLAYERS, ...OPTIONS].some(([k, , , r]) => r && cur[k] !== initial[k]);
+  const needsRestart = (cur) => ALL.some(([k, , , r]) => r && cur[k] !== initial[k]);
   window.c07.get().then((s) => {
     initial = { ...s.applied };
     const cur = { ...s.values };
@@ -136,7 +206,9 @@
     document.getElementById('keys').innerHTML = mac
       ? '<kbd>⌘,</kbd> settings · <kbd>⌘⇧S</kbd> screenshot · <kbd>⌘K</kbd> keyboard help · <kbd>⌃⌘F</kbd> full screen'
       : '<kbd>Ctrl+,</kbd> settings · <kbd>Ctrl+Shift+S</kbd> screenshot · <kbd>Ctrl+K</kbd> keyboard help · <kbd>F11</kbd> full screen';
-    for (const [list, target] of [[PLAYERS, document.getElementById('players')], [OPTIONS, box]])
+    const rows = {};
+    const deps = () => { for (const [k, need] of Object.entries(NEEDS)) rows[k]?.classList.toggle('off', !cur[need]); };
+    for (const [list, id] of CARDS)
     for (const [key, title, hint, next] of list) {
       const row = document.createElement('label');
       row.className = 'row';
@@ -147,17 +219,44 @@
       input.onchange = () => {
         cur[key] = input.checked;
         window.c07.set(key, input.checked);
+        deps();
         restart.classList.toggle('show', needsRestart(cur));
       };
-      target.appendChild(row);
+      rows[key] = row;
+      document.getElementById(id).appendChild(row);
     }
+    deps();
     restart.classList.toggle('show', needsRestart(cur));
   });
+
+  // ---- tabs (the last one used opens next time)
+  const tabs = [...document.querySelectorAll('[data-tab]')];
+  function show(name) {
+    if (!tabs.some((t) => t.dataset.tab === name)) name = 'teams';
+    for (const t of tabs) { const on = t.dataset.tab === name; t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1; }
+    for (const p of document.querySelectorAll('[data-page]')) p.classList.toggle('on', p.dataset.page === name);
+    document.getElementById('pages').scrollTop = 0;
+    try { localStorage.setItem('tab', name); } catch {}
+  }
+  for (const t of tabs) {
+    t.onclick = () => show(t.dataset.tab);
+    t.onkeydown = (e) => {
+      const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (!d) return;
+      const next = tabs[(tabs.indexOf(t) + d + tabs.length) % tabs.length];
+      show(next.dataset.tab); next.focus();
+    };
+  }
+  let last = null; try { last = localStorage.getItem('tab'); } catch {}
+  show(last);
+
   for (const b of document.querySelectorAll('[data-action]')) b.onclick = () => window.c07.action(b.dataset.action);
 
   // ---- updates
   const ago = (t) => { if (!t) return 'Not checked yet.'; const m = Math.round((Date.now() - t) / 60000);
     return 'Last checked ' + (m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' days ago') + '.'; };
+  // a dot on the App tab when something there needs a look (an update, safe graphics)
+  const appDot = { update: false, safe: false, refresh() { document.getElementById('app-dot').classList.toggle('hidden', !(this.update || this.safe)); } };
   function showUpdates(u) {
     const a = document.getElementById('app-status');
     a.textContent = u.app?.available ? `Version ${u.app.version} is available (you have ${u.appVersion}).`
@@ -169,12 +268,14 @@
       : u.engineUpdatedAt ? 'Up to date (updated ' + new Date(u.engineUpdatedAt).toLocaleDateString() + ').'
       : u.engine ? 'Up to date.' : 'Not checked yet.';
     document.getElementById('engine-update').classList.toggle('hidden', !u.engine?.available || u.engineBusy);
+    appDot.update = !!(u.app?.available || u.engine?.available); appDot.refresh();
     if (u.engineError) document.getElementById('engine-update').textContent = 'Try Again';
     document.getElementById('checked').textContent = (u.error ? "Couldn't check (offline?). " : '') + ago(u.checkedAt);
   }
   window.c07.get().then((s) => {
     showUpdates(s.updates);
     document.getElementById('safe-graphics').classList.toggle('hidden', !s.safeGraphics);
+    appDot.safe = !!s.safeGraphics; appDot.refresh();
     const auto = document.getElementById('auto-update');
     auto.checked = !!s.values.autoUpdate;
     auto.onchange = () => window.c07.set('autoUpdate', auto.checked);

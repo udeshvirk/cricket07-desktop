@@ -99,7 +99,7 @@ The game only remembers changes you save there.
 - **Starts faster.** Skips the EA Sports logo movie (you can turn that off).
 - **Plays offline** after the first download, and **backs up your saves** automatically.
 - **Tells you about updates** when a new version is available.
-- Everything can be switched on or off in **Settings** (⌘, or Ctrl+,).
+- Everything can be switched on or off in **Settings** (⌘, or Ctrl+,), in five tabs: Teams, Gameplay, Picture, Saves and App.
 
 ![Batting view, with Shahid Afridi on the scoreboard](docs/batting.jpg)
 
