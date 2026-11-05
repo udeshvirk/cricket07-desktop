@@ -3,20 +3,20 @@
   "paceAbout": "Top speed (mph) of today's fastest bowlers, approximate, for the game's fast-bowler list (2006 list: Brett Lee 99, Shoaib Akhtar 100).",
   "pace": {"J.Bumrah": 95, "M.Siraj": 91, "P.Krishna": 91, "P.Cummins": 92, "M.Starc": 96, "J.Archer": 96, "M.Wood": 97, "G.Atkinson": 94, "B.Carse": 93, "Shaheen Afridi": 94, "Naseem Shah": 95, "Haris Rauf": 97, "K.Rabada": 95, "A.Nortje": 97, "G.Coetzee": 96, "L.Ngidi": 92, "M.Jansen": 91, "N.Burger": 92, "W.O'Rourke": 94, "K.Jamieson": 92, "B.Sears": 92, "M.Pathirana": 96, "L.Kumara": 94, "Shamar Joseph": 95, "Alzarri Joseph": 94, "J.Seales": 92, "Nahid Rana": 96, "Taskin Ahmed": 92, "B.Muzarabani": 91},
   "legends": {
-    "about": "Legends teams (setting legends2006, with current squads on): each block (a team the game has, e.g. 45 India A) becomes the 2006 squad of team 'from', with that team's badge. kit: the slot's own kit files (location 'slot') are replaced by team 'from''s, in a different shade (tint: HSL hue shift, lightness and saturation factors for colours in the 'only' hue range; greys: lightness factor for dark greys) so a team and its Legends side look apart; name/number: shirt lettering colours. spare: teams whose players may be reused for 2026 players when the replaced teams' own players run out.",
+    "about": "Legends teams (setting legends2006, with current squads on): each block (a team the game has, e.g. 45 India A) becomes the 2006 squad of team 'from', with that team's badge (badge: the country's frontend/textures/team_<code> picture, copied into the slot's own badge file; the slot keeps its own badge code, as two teams with one code crash World Championship). kit: the slot's own kit files (location 'slot') are replaced by team 'from''s, in a different shade (tint: HSL hue shift, lightness and saturation factors for colours in the 'only' hue range; greys: lightness factor for dark greys) so a team and its Legends side look apart; name/number: shirt lettering colours. spare: teams whose players may be reused for 2026 players when the replaced teams' own players run out.",
     "category": "Legends",
     "spare": [19, 57, 54, 2, 9],
     "teams": [
-      { "block": 44, "from": 0, "name": "Australia Legends", "short": "Aus Legends", "abbr": "AUL", "kit": {"slot": "aua", "from": "auo", "name": "#0f4d2a", "number": "#0f4d2a"} },
-      { "block": 45, "from": 13, "name": "India Legends", "short": "Ind Legends", "abbr": "INL", "kit": {"slot": "ida", "from": "ind", "tint": {"hue": 18, "light": 0.45, "sat": 1.2}} },
-      { "block": 46, "from": 27, "name": "Pakistan Legends", "short": "Pak Legends", "abbr": "PKL", "kit": {"slot": "pka", "from": "pak", "tint": {"hue": 28, "light": 0.55}} },
-      { "block": 47, "from": 30, "name": "S.Africa Legends", "short": "SA Legends", "abbr": "SAL", "kit": {"slot": "sfa", "from": "saf", "tint": {"hue": -35, "light": 1.25, "only": [70, 190]}} },
-      { "block": 48, "from": 39, "name": "W.Indies Legends", "short": "WI Legends", "abbr": "WIL", "kit": {"slot": "wia", "from": "win", "tint": {"hue": -8, "light": 1.9, "sat": 1.1}} },
-      { "block": 49, "from": 7, "name": "England Legends", "short": "Eng Legends", "abbr": "ENL", "kit": {"slot": "cax", "from": "eng", "tint": {"hue": -10, "light": 2.6, "sat": 0.9, "only": [180, 280]}} },
-      { "block": 50, "from": 23, "name": "N.Zealand Legends", "short": "NZ Legends", "abbr": "KWL", "kit": {"slot": "bpx", "from": "nzl", "tint": {"greys": 3.2}} },
-      { "block": 51, "from": 32, "name": "Sri Lanka Legends", "short": "SL Legends", "abbr": "SLL", "kit": {"slot": "dnx", "from": "sri", "tint": {"hue": -15, "light": 1.7, "only": [180, 280]}} },
-      { "block": 52, "from": 1, "name": "B'desh Legends", "short": "Ban Legends", "abbr": "BDL", "kit": {"slot": "gvx", "from": "ban", "tint": {"hue": -15, "light": 1.8, "only": [70, 190]}} },
-      { "block": 53, "from": 43, "name": "Zimbabwe Legends", "short": "Zim Legends", "abbr": "ZML", "kit": {"slot": "pmx", "from": "zim", "tint": {"light": 0.45, "only": [330, 25]}} }
+      { "block": 44, "from": 0, "name": "Australia Legends", "short": "Aus Legends", "abbr": "AUL", "badge": "aus", "kit": {"slot": "aua", "from": "auo", "name": "#0f4d2a", "number": "#0f4d2a"} },
+      { "block": 45, "from": 13, "name": "India Legends", "short": "Ind Legends", "abbr": "INL", "badge": "ind", "kit": {"slot": "ida", "from": "ind", "tint": {"hue": 18, "light": 0.45, "sat": 1.2}} },
+      { "block": 46, "from": 27, "name": "Pakistan Legends", "short": "Pak Legends", "abbr": "PKL", "badge": "pak", "kit": {"slot": "pka", "from": "pak", "tint": {"hue": 28, "light": 0.55}} },
+      { "block": 47, "from": 30, "name": "S.Africa Legends", "short": "SA Legends", "abbr": "SAL", "badge": "saf", "kit": {"slot": "sfa", "from": "saf", "tint": {"hue": -35, "light": 1.25, "only": [70, 190]}} },
+      { "block": 48, "from": 39, "name": "W.Indies Legends", "short": "WI Legends", "abbr": "WIL", "badge": "win", "kit": {"slot": "wia", "from": "win", "tint": {"hue": -8, "light": 1.9, "sat": 1.1}} },
+      { "block": 49, "from": 7, "name": "England Legends", "short": "Eng Legends", "abbr": "ENL", "badge": "eng", "kit": {"slot": "cax", "from": "eng", "tint": {"hue": -10, "light": 2.6, "sat": 0.9, "only": [180, 280]}} },
+      { "block": 50, "from": 23, "name": "N.Zealand Legends", "short": "NZ Legends", "abbr": "KWL", "badge": "nzl", "kit": {"slot": "bpx", "from": "nzl", "tint": {"greys": 3.2}} },
+      { "block": 51, "from": 32, "name": "Sri Lanka Legends", "short": "SL Legends", "abbr": "SLL", "badge": "sri", "kit": {"slot": "dnx", "from": "sri", "tint": {"hue": -15, "light": 1.7, "only": [180, 280]}} },
+      { "block": 52, "from": 1, "name": "B'desh Legends", "short": "Ban Legends", "abbr": "BDL", "badge": "ban", "kit": {"slot": "gvx", "from": "ban", "tint": {"hue": -15, "light": 1.8, "only": [70, 190]}} },
+      { "block": 53, "from": 43, "name": "Zimbabwe Legends", "short": "Zim Legends", "abbr": "ZML", "badge": "zim", "kit": {"slot": "pmx", "from": "zim", "tint": {"light": 0.45, "only": [330, 25]}} }
     ]
   },
   "teams": [

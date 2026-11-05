@@ -135,9 +135,11 @@ function legendsPatch(name, data, SQUADS) {
   if (name === F.teams) {
     s = s.replace(/StandardOfCricket="1"/g, 'StandardOfCricket="3"');
     for (const t of L.teams) {
-      const nat = line(new RegExp(`<team Index="${t.from}"\\s[^>]*>`))[0], mine = line(new RegExp(`<team Index="${t.block}"\\s[^>]*>`))[0];
+      const mine = line(new RegExp(`<team Index="${t.block}"\\s[^>]*>`))[0];
       let l = setAttr(mine, 'TeamName', t.name); l = setAttr(l, 'TeamNameShort', t.short); l = setAttr(l, 'Abbreviation', t.abbr);
-      l = setAttr(l, 'LogoAbbreviation', attr(nat, 'LogoAbbreviation')); l = setAttr(l, 'StandardOfCricket', '1');
+      // the side keeps its own LogoAbbreviation: World Championship crashed (memory access out of bounds after
+      // team select) with two teams sharing one. Its badge file gets the country's badge instead (BADGES in names.js).
+      l = setAttr(l, 'StandardOfCricket', '1');
       s = s.replace(mine, l);
     }
   } else if (name === F.kits) {
@@ -165,6 +167,31 @@ function legendsPatch(name, data, SQUADS) {
 
 // The Legends kits: a country's kit textures (EA FSH: 32-bit BGRA or DXT) in a different shade. Colours whose hue is
 // in tint.only (all if absent) get the hue shift and lightness/saturation factors; tint.greys scales dark greys.
+// A Legends badge: the country's badge file (frontend/textures/team_<code>) with its pictures renamed to the slot's
+// code. Each picture has a 4-letter name in the directory and a full name (attachment 0x70: 'flind', 'l1ind', 'l3ind'),
+// and the game finds the pictures by the full name (Australia's 'au' short names matched and it still showed white).
+function renameFsh(d, from, to) {
+  if (from.length !== to.length) throw new Error('badge: codes differ in length');
+  const o = new Uint8Array(d), u32 = (p) => (o[p] | o[p + 1] << 8 | o[p + 2] << 16 | o[p + 3] << 24) >>> 0;
+  if (String.fromCharCode(o[0], o[1], o[2], o[3]) !== 'SHPI') throw new Error('badge: not an FSH texture');
+  let renamed = 0;
+  for (let i = 0, n = u32(8); i < n; i++) {
+    for (let at = u32(20 + 8 * i), step = 1; step; at += step) {   // the picture's attachments, chained by 24-bit offsets
+      step = o[at + 1] | o[at + 2] << 8 | o[at + 3] << 16;
+      if (o[at] !== 0x70) continue;
+      let name = ''; for (let p = at + 4; o[p] && p < at + 16; p++) name += String.fromCharCode(o[p]);
+      if (!name.endsWith(from)) throw new Error('badge: picture ' + name);
+      const full = name.slice(0, -from.length) + to;
+      for (let k = 0; k < full.length; k++) o[at + 4 + k] = full.charCodeAt(k);
+      for (let k = 0; k < 4; k++) o[16 + 8 * i + k] = full.charCodeAt(k) || 0;
+      renamed++;
+      break;
+    }
+  }
+  if (!renamed) throw new Error('badge: no picture names');
+  return o;
+}
+
 function tintFsh(d, tint) {
   const o = new Uint8Array(d), u16 = (p) => o[p] | o[p + 1] << 8, u32 = (p) => (o[p] | o[p + 1] << 8 | o[p + 2] << 16 | o[p + 3] << 24) >>> 0;
   const cache = new Map();
@@ -234,4 +261,4 @@ function fastBowlersPatch(bytes, out, SQUADS) {
   return bytesOut;
 }
 
-if (typeof module !== 'undefined') module.exports = { applySquads, legendsPatch, tintFsh, FAST_BOWLERS, fastBowlersPatch };
+if (typeof module !== 'undefined') module.exports = { applySquads, legendsPatch, renameFsh, tintFsh, FAST_BOWLERS, fastBowlersPatch };

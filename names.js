@@ -10,7 +10,7 @@ const path = require('path');
 
 const NAMES = JSON.parse(fs.readFileSync(path.join(__dirname, 'real-names.json'), 'utf8'));
 const SQUADS = JSON.parse(fs.readFileSync(path.join(__dirname, 'squads-2026.json'), 'utf8'));
-const { applySquads, legendsPatch, tintFsh, FAST_BOWLERS, fastBowlersPatch } = require('./squads');
+const { applySquads, legendsPatch, renameFsh, tintFsh, FAST_BOWLERS, fastBowlersPatch } = require('./squads');
 const { EDGES_ENTRY, EDGE_TUNING, MISSES_ENTRY, MISS_TUNING, BATPAD_ENTRY, BATPAD_TUNING, edgesPatch,
   PITCH_ENTRY, PITCH_TUNING, pitchPatch, SIXES_ENTRY, SIXES_TUNING, sixesPatch, WEATHER_ENTRY, WEATHER_TUNING, weatherPatch } = require('./gameplay');
 // Fingerprint of the edge tuning: a game patched with older values is rebuilt when it changes
@@ -27,12 +27,16 @@ const md5 = (t) => require('crypto').createHash('md5').update(t).digest('hex');
 // get the country's kit, recoloured (tint) or as it is
 const KIT_FILES = ['kit1', 'kit2', 'kit3', 'accessories'].flatMap((k) => ['coloured', 'white', 'sweater'].map((v) => v + k)).concat('helm');
 const KITS = SQUADS.legends.teams.flatMap((t) => KIT_FILES.map((k) => ({ entry: md5(`teams/${t.kit.slot}/${k}`) + '.fsh',
-  from: md5(`teams/${t.kit.from}/${k}`) + '.fsh', tint: t.kit.tint && (k.startsWith('coloured') || k === 'helm') ? t.kit.tint : null })));
+  from: md5(`teams/${t.kit.from}/${k}`) + '.fsh', tint: t.kit.tint && (k.startsWith('coloured') || k === 'helm') ? t.kit.tint : null })))
+  // and the badge: the slot's own badge file (its badge code is the kit slot) gets the country's badge, its pictures
+  // renamed to the slot's code (rename)
+  .concat(SQUADS.legends.teams.map((t) => ({ entry: md5(`frontend/textures/team_${t.kit.slot}`) + '.fsh',
+    from: md5(`frontend/textures/team_${t.badge}`) + '.fsh', tint: null, rename: [t.badge, t.kit.slot] })));
 // Fingerprint of the squad data and code: a game patched with older squads is rebuilt when it changes
-const SQ_VER = require('crypto').createHash('md5').update(JSON.stringify(SQUADS) + applySquads.toString() + legendsPatch.toString() + tintFsh.toString() + fastBowlersPatch.toString()).digest('hex').slice(0, 8);
+const SQ_VER = require('crypto').createHash('md5').update(JSON.stringify(SQUADS) + applySquads.toString() + legendsPatch.toString() + renameFsh.toString() + tintFsh.toString() + fastBowlersPatch.toString()).digest('hex').slice(0, 8);
 
 const PAGE_JS = `async (NAMES, SQUADS, LIB, KITS, want) => {
-  const { applySquads, legendsPatch, tintFsh, FAST_BOWLERS, fastBowlersPatch, edgesPatch, EDGES_ENTRY, EDGE_TUNING, MISSES_ENTRY, MISS_TUNING, BATPAD_ENTRY, BATPAD_TUNING,
+  const { applySquads, legendsPatch, renameFsh, tintFsh, FAST_BOWLERS, fastBowlersPatch, edgesPatch, EDGES_ENTRY, EDGE_TUNING, MISSES_ENTRY, MISS_TUNING, BATPAD_ENTRY, BATPAD_TUNING,
     PITCH_ENTRY, PITCH_TUNING, pitchPatch, SIXES_ENTRY, SIXES_TUNING, sixesPatch, WEATHER_ENTRY, WEATHER_TUNING, weatherPatch } = LIB;
   const ENTRY = '113964e05e69ab31d264fb8f15c58e5c.cdf', REC = 360, MARK = '.names-original.json';
   // team list, kits, menu screens, kit textures (Legends); the fast-bowler list (current squads); the edge table (Realistic edges);
@@ -156,8 +160,9 @@ const PAGE_JS = `async (NAMES, SQUADS, LIB, KITS, want) => {
   for (const n of Object.keys(m.extra)) {
     if (!where[n]) continue;
     const kit = want.legends && KITS.find((k) => k.entry === n), src = kit && where[kit.from];
-    if (src) {   // a Legends kit texture: the country's, recoloured (appended) or pointed at as it is
+    if (src) {   // a Legends kit or badge texture: the country's, recoloured or renamed (appended) or pointed at as it is
       if (kit.tint) files.push([where[n].pos, pack(tintFsh(await original(src.off, src.size), kit.tint))]);
+      else if (kit.rename) files.push([where[n].pos, pack(renameFsh(await original(src.off, src.size), ...kit.rename))]);
       else resets.push([where[n].pos, src.off, src.size]);
       continue;
     }
@@ -200,7 +205,7 @@ function names(win, want) {
   if (typeof want === 'object') want = { names: !!want.names, squads: want.squads ? SQ_VER : false, legends: !!(want.squads && want.legends),
     edges: want.edges ? ED_VER : false, outs: want.outs ? OUT_VER : false, pitch: want.pitch ? PI_VER : false, sixes: want.sixes ? SX_VER : false,
     weather: want.weather ? WX_VER : false };
-  const lib = `({ applySquads: ${applySquads.toString()}, legendsPatch: ${legendsPatch.toString()}, tintFsh: ${tintFsh.toString()},
+  const lib = `({ applySquads: ${applySquads.toString()}, legendsPatch: ${legendsPatch.toString()}, renameFsh: ${renameFsh.toString()}, tintFsh: ${tintFsh.toString()},
     FAST_BOWLERS: ${JSON.stringify(FAST_BOWLERS)}, fastBowlersPatch: ${fastBowlersPatch.toString()},
     edgesPatch: ${edgesPatch.toString()}, EDGES_ENTRY: ${JSON.stringify(EDGES_ENTRY)}, EDGE_TUNING: ${JSON.stringify(EDGE_TUNING)},
     MISSES_ENTRY: ${JSON.stringify(MISSES_ENTRY)}, MISS_TUNING: ${JSON.stringify(MISS_TUNING)},
