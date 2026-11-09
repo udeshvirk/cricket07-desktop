@@ -18,8 +18,11 @@ const SCHEME = 'c07';
 const START_URL = `${SCHEME}://app/index.html`;
 
 // The files the port's page needs. Only these are fetched and kept.
-const ENGINE_FILES = new Set(['index.html', 'c07.js', 'netplay.js', 'audio-worklet.js', 'cricket07-logo.png',
-  'favicon.ico', 'build/cricket07.js', 'build/cricket07.wasm']);
+// The engine's files. Newer engines name the game file after its contents (build/cricket07.<hash>.wasm, Nov 2026)
+// and add download-worker.js; the updater finds the game file's name in c07.js.
+const ENGINE_FILES = ['index.html', 'c07.js', 'netplay.js', 'audio-worklet.js', 'download-worker.js', 'cricket07-logo.png',
+  'favicon.ico', 'build/cricket07.js'];
+const isEngineFile = (rel) => ENGINE_FILES.includes(rel) || /^build\/cricket07(\.[0-9a-f]{6,64})?\.wasm$/.test(rel);
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.wasm': 'application/wasm', '.png': 'image/png',
   '.ico': 'image/x-icon', '.json': 'application/json' };
 
@@ -164,7 +167,7 @@ async function handle(request) {
   if (rel === 'enhance.js') {
     return new Response(fs.readFileSync(path.join(__dirname, 'enhance.js')), { headers: { 'Content-Type': 'text/javascript', ...ISOLATION } });
   }
-  if (!ENGINE_FILES.has(rel)) return new Response('Not found', { status: 404, headers: ISOLATION });
+  if (!isEngineFile(rel)) return new Response('Not found', { status: 404, headers: ISOLATION });
   try {
     const body = adapt(rel, await diagnostics.serving(rel, () => engineFile(rel)));
     return new Response(body, { headers: { 'Content-Type': TYPES[path.extname(rel)] || 'application/octet-stream', ...ISOLATION } });
@@ -472,7 +475,7 @@ ipcMain.handle('settings:action', async (e, name) => {
       engineBusy = true; engineError = null;
       const say = (t) => settingsWin?.webContents.send('update-progress', t);
       try {
-        await updates.updateEngine(engineInfo(), [...ENGINE_FILES], say);
+        await updates.updateEngine(engineInfo(), ENGINE_FILES, say);
         say('Done. Restarting the game…');
         await new Promise((r) => setTimeout(r, 800));
         close();
