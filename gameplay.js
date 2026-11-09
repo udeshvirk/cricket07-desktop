@@ -152,11 +152,11 @@ function sixesPatch(bytes, TUNING) {
 }
 
 // Weather variety (moreWeather): the weather table says which weather, pitch and temperature each ground can have. It
-// leaves out overcast days at most grounds outside England and New Zealand, and humid ones in England and New Zealand.
-// This allows them; night games and pitch types are left alone (a ground without them may lack the graphics).
+// leaves out humid days in England and New Zealand and mild ones at some grounds; this allows them. Weather (Overcast,
+// Wet), night games and pitch types are left alone: each ground's lighting is a file (stadiums/<ground>.overcast etc.),
+// and a ground without one can't have that weather (a match there quits: "Async load of <md5>.big failed").
 const WEATHER_ENTRY = '101ed25c9898b17a3d7be05a8cf97d95.xml';
 const WEATHER_TUNING = {
-  Overcast: ['adelaide', 'brisbane', 'perth', 'kolkata', 'dhaka', 'cape town', 'johannesburg', 'kandy', 'barbados', 'harare'],
   Humid: ['birmingham', 'bristol', 'canterbury', 'cardiff', 'chelmsford', 'chester-le-street', 'derby', 'hove', 'leeds', 'leicester',
     "lord's", 'manchester', 'northampton', 'nottingham', 'southampton', 'taunton', 'the oval', 'worcester', 'auckland', 'christchurch'],
   Mild: ['adelaide', 'brisbane', 'hobart', 'melbourne', 'perth', 'sydney', 'barbados'],
