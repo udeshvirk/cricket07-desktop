@@ -87,7 +87,105 @@ const PAGE_CSS = `
     aspect-ratio: auto !important; border-radius: 0 !important; box-shadow: none !important; }
   #panel { background: #000 !important; }
   #view-loading .brand, #view-home, #view-online, #view-lobby, .credit, #kbd-show, #fs, #fstip, #kbd { display: none !important; }
-  body.kbd-on #kbd { display: block !important; z-index: 5; }
+  body.kbd-on #kbd {
+    display: block !important;
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: translate(-50%, -50%) !important;
+    width: 1040px !important;
+    max-width: 95vw !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+    padding: 24px 28px !important;
+    border-radius: 14px !important;
+    background: rgba(12, 17, 14, 0.96) !important;
+    border: 1px solid rgba(74, 222, 128, 0.35) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+    z-index: 99999 !important;
+    color: #eef4ef !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  }
+  #kbd .kbd-head {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding-bottom: 14px !important;
+    margin-bottom: 16px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+  #kbd-close {
+    background: transparent !important;
+    border: 0 !important;
+    color: #9fb3a5 !important;
+    font-size: 24px !important;
+    line-height: 1 !important;
+    width: 32px !important;
+    height: 32px !important;
+    cursor: pointer !important;
+    border-radius: 6px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  #kbd-close:hover { color: #fff !important; background: rgba(255, 255, 255, 0.1) !important; }
+  #kbd .kbd-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 18px !important;
+  }
+  @media (max-width: 860px) {
+    #kbd .kbd-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  }
+  #kbd .kbd-col {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border-radius: 10px !important;
+    padding: 14px 16px !important;
+  }
+  #kbd .kbd-col h3 {
+    margin: 0 0 12px 0 !important;
+    padding-bottom: 7px !important;
+    border-bottom: 1px solid rgba(74, 222, 128, 0.25) !important;
+    color: #4ade80 !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.07em !important;
+  }
+  #kbd .row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 6px 0 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important;
+  }
+  #kbd .label {
+    color: #c4d4c8 !important;
+    font-size: 12.5px !important;
+    font-weight: 500 !important;
+  }
+  #kbd .keys {
+    display: flex !important;
+    gap: 4px !important;
+    align-items: center !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+  #kbd kbd {
+    background: #1a271f !important;
+    border: 1px solid #3c5243 !important;
+    color: #e6f4ea !important;
+    box-shadow: 0 2px 0 #0d1610 !important;
+    padding: 2.5px 7px !important;
+    border-radius: 5px !important;
+    font: 600 12px monospace !important;
+  }
   #view-loading { animation: none !important; }
   #status { color: #9fb3a5 !important; font-size: 14px; }
   canvas, canvas:focus { outline: none !important; }
@@ -104,6 +202,75 @@ function adapt(rel, buf) {
     text = text.replace('<script src="netplay.js"></script>', '<script src="enhance.js"></script>\n<script src="netplay.js"></script>');
     // the app's layout is part of the page, so the very first frame is already right (black, no website layout)
     text = text.replace('</head>', `<style id="desktop-app">${PAGE_CSS}</style>\n</head>`);
+    // wide multi-column controls & delivery guide (Cmd+K / Ctrl+K)
+    const KBD_HTML = `
+  <aside id="kbd" aria-label="Controls &amp; Delivery Guide">
+    <div class="kbd-head">
+      <div style="display:flex;align-items:center;gap:10px">
+        <b style="font-size:16px;color:#4ade80;letter-spacing:0.5px">CRICKET 07 CONTROLS &amp; DELIVERY GUIDE</b>
+        <span style="font-size:12px;color:#9fb3a5;padding:3px 9px;border-radius:12px;background:rgba(255,255,255,0.06)">Toggle: ${MAC ? '⌘K' : 'Ctrl+K'}</span>
+      </div>
+      <button id="kbd-close" type="button" aria-label="Close" title="Close" onpointerdown="document.body.classList.remove('kbd-on')" onclick="document.body.classList.remove('kbd-on')">&times;</button>
+    </div>
+    <div class="kbd-grid">
+      <div class="kbd-col">
+        <h3>Batting</h3>
+        <div class="row"><span class="label">Front Foot Drive</span><div class="keys"><kbd>S</kbd></div></div>
+        <div class="row"><span class="label">Back Foot Shot / Cut</span><div class="keys"><kbd>W</kbd></div></div>
+        <div class="row"><span class="label">Defensive Block</span><div class="keys"><kbd>S</kbd> / <kbd>W</kbd></div></div>
+        <div class="row"><span class="label">Leave Ball</span><div class="keys"><kbd>A</kbd></div></div>
+        <div class="row"><span class="label">Lofted Shot / Six</span><div class="keys"><kbd>Shift</kbd> + <kbd>S</kbd> / <kbd>W</kbd></div></div>
+        <div class="row"><span class="label">Advance Down Pitch</span><div class="keys"><kbd>D</kbd></div></div>
+        <div class="row"><span class="label">Shot Direction</span><div class="keys"><kbd>&larr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&rarr;</kbd></div></div>
+        <div class="row"><span class="label">Glance / Pull / Hook</span><div class="keys"><kbd>&larr;</kbd><kbd>&rarr;</kbd> Direction</div></div>
+      </div>
+      <div class="kbd-col">
+        <h3>Pace Bowling</h3>
+        <div class="row"><span class="label">Stock Fast Delivery</span><div class="keys"><kbd>S</kbd></div></div>
+        <div class="row"><span class="label">Outswing / Inswing Cutter</span><div class="keys"><kbd>W</kbd></div></div>
+        <div class="row"><span class="label">Yorker / Slower Dipper</span><div class="keys"><kbd>Space</kbd></div></div>
+        <div class="row"><span class="label">Bouncer / Rising Ball</span><div class="keys"><kbd>Ctrl</kbd></div></div>
+        <div class="row"><span class="label">Super Slow (High Loop)</span><div class="keys"><kbd>Alt</kbd></div></div>
+        <div class="row"><span class="label">Reverse Swing / Special</span><div class="keys"><kbd>Shift</kbd></div></div>
+        <div class="row"><span class="label">Crease Position</span><div class="keys"><kbd>&larr;</kbd><kbd>&rarr;</kbd></div></div>
+        <div class="row"><span class="label">Pitch Line &amp; Length</span><div class="keys"><kbd>&larr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&rarr;</kbd></div></div>
+      </div>
+      <div class="kbd-col">
+        <h3>Spin Bowling</h3>
+        <div class="row"><span class="label">Stock Break (Turn in/away)</span><div class="keys"><kbd>S</kbd></div></div>
+        <div class="row"><span class="label">Arm Ball / Straight Seam</span><div class="keys"><kbd>W</kbd></div></div>
+        <div class="row"><span class="label">Flipper / Skidding Yorker</span><div class="keys"><kbd>Space</kbd></div></div>
+        <div class="row"><span class="label">Top Spinner (Bounce)</span><div class="keys"><kbd>Ctrl</kbd></div></div>
+        <div class="row"><span class="label">Full Flight / High Floater</span><div class="keys"><kbd>Alt</kbd></div></div>
+        <div class="row"><span class="label">Doosra / Googly (Opposite)</span><div class="keys"><kbd>Shift</kbd></div></div>
+        <div class="row"><span class="label">Crease Position</span><div class="keys"><kbd>&larr;</kbd><kbd>&rarr;</kbd></div></div>
+        <div class="row"><span class="label">Release Timing Sweetspot</span><div class="keys"><kbd>S</kbd> <span style="color:#718578;font-size:11px">at mark</span></div></div>
+      </div>
+      <div class="kbd-col">
+        <h3>Running &amp; Fielding</h3>
+        <div class="row"><span class="label">Take Run / Call Partner</span><div class="keys"><kbd>D</kbd></div></div>
+        <div class="row"><span class="label">Cancel Run / Return</span><div class="keys"><kbd>A</kbd></div></div>
+        <div class="row"><span class="label">Slide / Dive to Crease</span><div class="keys"><kbd>W</kbd></div></div>
+        <div class="row"><span class="label">Throw to Keeper's End</span><div class="keys"><kbd>S</kbd></div></div>
+        <div class="row"><span class="label">Throw to Bowler's End</span><div class="keys"><kbd>D</kbd></div></div>
+        <div class="row"><span class="label">Direct Hit / Flat Throw</span><div class="keys"><kbd>A</kbd> / <kbd>Shift</kbd></div></div>
+        <div class="row"><span class="label">Boundary Slide / Catch</span><div class="keys"><kbd>W</kbd> / <kbd>S</kbd></div></div>
+        <div class="row"><span class="label">Match Menu &amp; Settings</span><div class="keys"><kbd>Esc</kbd> / <kbd>${MAC ? '⌘' : 'Ctrl'}+,</kbd></div></div>
+      </div>
+    </div>
+  </aside>
+  <script>
+    document.addEventListener('click', (e) => {
+      if (e.target && e.target.closest('#kbd-close')) document.body.classList.remove('kbd-on');
+    }, true);
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && document.body.classList.contains('kbd-on')) {
+        document.body.classList.remove('kbd-on');
+        e.stopPropagation();
+      }
+    }, true);
+  </script>`;
+    text = text.replace(/<aside id="kbd"[\s\S]*?<\/aside>/, KBD_HTML);
   } else if (rel === 'c07.js') {
     // keep the 4:3 picture and let the window stretch it over the screen (no black bars), unless widescreen
     // (enhance.js) is on, which draws the scene at the window's own shape
