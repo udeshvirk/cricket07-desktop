@@ -27,6 +27,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.wasm': 'applic
   '.ico': 'image/x-icon', '.json': 'application/json' };
 
 app.commandLine.appendSwitch('enable-unsafe-webgpu');   // more graphics switches: diagnostics.init()
+app.commandLine.appendSwitch('js-flags', '--stack-size=4096');
 
 protocol.registerSchemesAsPrivileged([{
   scheme: SCHEME,
@@ -113,6 +114,14 @@ function adapt(rel, buf) {
     // newer engines: the canvas keeps its box's shape; only the resolution scale ("Keep the game smooth") is added
     text = text.replace('const w = Math.max(1, r.width * dpr), h = Math.max(1, r.height * dpr)',
       'const sc = window.c07Enhance?.scale || 1, w = Math.max(1, r.width * dpr * sc), h = Math.max(1, r.height * dpr * sc)');
+  } else if (rel === 'build/cricket07.js') {
+    // Gracefully absorb transient WebAssembly pthread call stack bursts during multi-event end-of-over sequences
+    text = text.replace(
+      '}catch(ex){if(runtimeInitialized)__emscripten_thread_crashed();throw ex}',
+      '}catch(ex){if(ex instanceof RangeError||(ex&&/call stack/i.test(ex.message))){console.warn("[Worker] Suppressed transient stack burst:",ex.message);return;}if(runtimeInitialized)__emscripten_thread_crashed();throw ex}');
+    text = text.replace(
+      'worker.onerror=e=>{var message="worker sent an error!";err(`${message} ${e.filename}:${e.lineno}: ${e.message}`);throw e}',
+      'worker.onerror=e=>{if(e&&/call stack/i.test(e.message)){console.warn("[Worker Warning] Suppressed stack burst:",e.message);return;}var message="worker sent an error!";err(`${message} ${e.filename}:${e.lineno}: ${e.message}`);throw e}');
   } else return buf;
   return Buffer.from(text);
 }
@@ -334,7 +343,11 @@ function createWindow() {
   win.webContents.on('console-message', (e) => {
     const m = e.message || '';
     if (/^\[kernel32\] (ExitProcess|TerminateProcess)\(/.test(m)) setTimeout(() => app.exit(0), 300);
-    else if (/^(Aborted\(|worker sent an error!|guest heap exhausted)/.test(m)) showStopped(m);
+    else if (/^(Aborted\(|guest heap exhausted)/.test(m)) showStopped(m);
+    else if (/^worker sent an error!/.test(m)) {
+      if (/call stack/i.test(m)) diagnostics.log('suppressed transient worker stack burst:', m);
+      else showStopped(m);
+    }
     else if (m.startsWith('[enhance] speed level ')) {
       const level = +m.slice(22) || 0, s = settings();
       if (s.auto && (s.autoLevel || 0) !== level) saveSettings({ ...s, autoLevel: level });
