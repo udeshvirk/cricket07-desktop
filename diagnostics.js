@@ -151,6 +151,7 @@ function watch(win) {
       state.pending = null;
       writeState(state);
       if (state.notice) { state.notice = false; writeState(state); notice(win, false); }
+      watchFirstFrame(win);
       return;
     }
     if (win.isMinimized() || !win.isVisible()) { setTimeout(check, 2000); return; }
@@ -161,7 +162,44 @@ function watch(win) {
   win.webContents.on('unresponsive', () => log('page not responding'));
   win.webContents.on('responsive', () => log('page responding again'));
   win.webContents.on('render-process-gone', (_e, d) => log('page process gone:', d.reason, `exit code ${d.exitCode}`));
-  win.webContents.on('console-message', (e) => { if (e.level === 'warning' || e.level === 'error') logConsole(e.level, e.message || ''); });
+  win.webContents.on('console-message', (e) => {
+    if (e.level === 'warning' || e.level === 'error') logConsole(e.level, e.message || '');
+    // until the game draws, its own startup lines too ([wgpu] renderer ready, [d3d] CreateDevice…): they show
+    // where a start that never draws got stuck
+    else if (!gameDrew && bootLines < 150) { bootLines++; logConsole('log', e.message || ''); }
+  });
+}
+
+// The window animating isn't the game drawing: a graphics driver can take the game's GPU setup and then never
+// finish a frame, leaving the engine's loading screen (#boot, "Starting the graphics…") up for good (#21). If
+// that screen stays on that step for 90 s of visible time, it's a failed picture like the others. (The slowest
+// start seen, software graphics on the CI machine, took ~20 s.) Nothing is checked if the page has no such screen.
+let gameDrew = false, bootLines = 0;
+const BOOT_STATE = `(() => { const b = document.getElementById('boot');
+  if (!b) return 'done';
+  if (!document.documentElement.classList.contains('playing')) return 'launcher';   // Play not pressed yet
+  if (b.classList.contains('hidden')) return 'done';
+  return /graphics/i.test(document.getElementById('boot-msg')?.textContent || '') ? 'gpu' : 'other'; })()`;
+function watchFirstFrame(win) {
+  let t0 = 0, stuck = 0, last = Date.now();
+  const timer = setInterval(async () => {
+    if (win.isDestroyed()) return clearInterval(timer);
+    const now = Date.now(), dt = now - last;
+    last = now;
+    const s = await withTimeout(win.webContents.executeJavaScript(BOOT_STATE), 5000, null);
+    if (win.isDestroyed()) return clearInterval(timer);
+    if (!t0 && s && s !== 'launcher') t0 = now;
+    if (s === 'done') {
+      clearInterval(timer);
+      gameDrew = true;
+      return log(`game drawing${t0 ? ` (${((Date.now() - t0) / 1000).toFixed(0)} s after Play)` : ''}`);
+    }
+    if (s !== 'gpu' || !win.isVisible() || win.isMinimized()) return;
+    stuck += dt;
+    if (stuck < 90000) return;
+    clearInterval(timer);
+    failed(win, 'the game never drew a frame (90 s on "Starting the graphics")');
+  }, 3000);
 }
 
 async function failed(win, why) {
