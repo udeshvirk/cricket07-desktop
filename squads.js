@@ -36,7 +36,10 @@ function applySquads(orig, out, SQUADS, legends) {
     const s = at(i), id = i16(orig, s);
     if (!id || !orig[s + 4]) continue;
     if (!byId.has(id)) byId.set(id, i);
-    info.push({ i, type: orig[s + 351] & 15, bowl: orig[s + 132] & 15, left: orig[s + 133] & 1,
+    let name = '';
+    for (let c = 0; c < 15 && orig[s + 4 + c]; c++) name += String.fromCharCode(orig[s + 4 + c]);
+    info.push({ i, name, type: orig[s + 351] & 15, bowl: orig[s + 132] & 15, left: orig[s + 133] & 1,
+      leftBowl: (orig[s + 133] >> 1) & 1,
       bat: UP[six(orig, s + 108, 1)], bowling: (UP[six(orig, s + 116, 1)] + UP[six(orig, s + 116, 2)]) / 2,
       nat: u32(orig, s + 216), face: u16(orig, s + 356) });
   }
@@ -75,13 +78,19 @@ function applySquads(orig, out, SQUADS, legends) {
     const nats = old.map((id) => u32(orig, at(byId.get(id)) + 216));
     const teamNat = nats.sort((x, y) => nats.filter((v) => v === y).length - nats.filter((v) => v === x).length)[0];
     const ids = [];
-    team.players.forEach(([name, role, hand, bowlType, bat, bowl, dob, comm], k) => {
+    team.players.forEach(([name, role, hand, bowlType, bat, bowl, dob, comm, model], k) => {
       const want = { type: TYPE[role], bowl: BOWLT[bowlType], left: hand === 'L' ? 1 : 0 };
-      let best = null, score = -1e9;
-      for (const p of pool) {
-        const sc = (p.type === want.type) * 100 + (p.bowl === want.bowl) * 60 + (p.left === want.left) * 40
-          - Math.abs(p.bat - bat) - Math.abs(p.bowling - bowl);
-        if (sc > score) { score = sc; best = p; }
+      const isLeftBowl = [1, 3, 4, 6, 8].includes(want.bowl) ? 1 : 0;
+      let best = null;
+      if (model) best = pool.find((p) => p.name === model || p.name.includes(model)) || null;
+      if (!best) {
+        let score = -1e9;
+        for (const p of pool) {
+          const sc = (p.type === want.type) * 100 + (p.bowl === want.bowl) * 60 + (p.left === want.left) * 40
+            + (p.leftBowl === isLeftBowl) * 80
+            - Math.abs(p.bat - bat) - Math.abs(p.bowling - bowl);
+          if (sc > score) { score = sc; best = p; }
+        }
       }
       const id = ids[k] = donors ? donors.shift() : old[k];
       if (id === undefined) throw new Error('not enough free player records');
@@ -101,7 +110,7 @@ function applySquads(orig, out, SQUADS, legends) {
       for (const [o, f] of BOWL) setSix(out, r + o, f, raw(UP[six(orig, t + o, f)] + bowl - tBowl));
       out[r + 351] = (out[r + 351] & 0xf0) | want.type;
       out[r + 132] = (out[r + 132] & 0xf0) | want.bowl;
-      out[r + 133] = (out[r + 133] & 0xfe) | want.left;
+      out[r + 133] = (out[r + 133] & 0xfc) | want.left | (isLeftBowl << 1);
       // batting position (the game orders the batting from it): opener, middle, lower order or tail
       const pos = role === 'OB' || role === 'OWK' ? 0 : ['OBW', 'BWL', 'SB'].includes(role) ? (bat >= 50 ? 2 : 3) : 1;
       out[r + 130] = (out[r + 130] & 0x7f) | (pos === 1 || pos === 2 ? 0x80 : 0);
