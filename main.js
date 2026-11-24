@@ -202,60 +202,44 @@ function adapt(rel, buf) {
     text = text.replace('<script src="netplay.js"></script>', '<script src="enhance.js"></script>\n<script src="netplay.js"></script>');
     // the app's layout is part of the page, so the very first frame is already right (black, no website layout)
     text = text.replace('</head>', `<style id="desktop-app">${PAGE_CSS}</style>\n</head>`);
-    // wide multi-column controls & delivery guide (Cmd+K / Ctrl+K)
+    // wide multi-column controls guide (Cmd+K / Ctrl+K)
     const KBD_HTML = `
-  <aside id="kbd" aria-label="Controls &amp; Delivery Guide">
+  <aside id="kbd" aria-label="Keyboard controls">
     <div class="kbd-head">
       <div style="display:flex;align-items:center;gap:10px">
-        <b style="font-size:16px;color:#4ade80;letter-spacing:0.5px">CRICKET 07 CONTROLS &amp; DELIVERY GUIDE</b>
+        <b style="font-size:16px;color:#4ade80;letter-spacing:0.5px">CRICKET 07 CONTROLS</b>
         <span style="font-size:12px;color:#9fb3a5;padding:3px 9px;border-radius:12px;background:rgba(255,255,255,0.06)">Toggle: ${MAC ? '⌘K' : 'Ctrl+K'}</span>
       </div>
-      <button id="kbd-close" type="button" aria-label="Close" title="Close" onpointerdown="document.body.classList.remove('kbd-on')" onclick="document.body.classList.remove('kbd-on')">&times;</button>
+      <button id="kbd-close" type="button" aria-label="Hide keyboard controls" title="Hide">&times;</button>
     </div>
     <div class="kbd-grid">
       <div class="kbd-col">
         <h3>Batting</h3>
-        <div class="row"><span class="label">Front Foot Drive</span><div class="keys"><kbd>S</kbd></div></div>
-        <div class="row"><span class="label">Back Foot Shot / Cut</span><div class="keys"><kbd>W</kbd></div></div>
-        <div class="row"><span class="label">Defensive Block</span><div class="keys"><kbd>S</kbd> / <kbd>W</kbd></div></div>
-        <div class="row"><span class="label">Leave Ball</span><div class="keys"><kbd>A</kbd></div></div>
-        <div class="row"><span class="label">Lofted Shot / Six</span><div class="keys"><kbd>Shift</kbd> + <kbd>S</kbd> / <kbd>W</kbd></div></div>
-        <div class="row"><span class="label">Advance Down Pitch</span><div class="keys"><kbd>D</kbd></div></div>
-        <div class="row"><span class="label">Shot Direction</span><div class="keys"><kbd>&larr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&rarr;</kbd></div></div>
-        <div class="row"><span class="label">Glance / Pull / Hook</span><div class="keys"><kbd>&larr;</kbd><kbd>&rarr;</kbd> Direction</div></div>
+        <div class="row"><span class="label">Normal shot</span><div class="keys"><kbd>S</kbd></div></div>
+        <div class="row"><span class="label">Lofted shot (hold)</span><div class="keys"><kbd>Shift</kbd></div></div>
+        <div class="row"><span class="label">Advanced shot</span><div class="keys"><kbd>D</kbd></div></div>
+        <div class="row"><span class="label">Shot direction</span><div class="keys"><kbd>&larr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&rarr;</kbd></div></div>
+        <div class="row"><span class="label">Take run</span><div class="keys"><kbd>D</kbd></div></div>
+        <div class="row"><span class="label">Cancel run</span><div class="keys"><kbd>A</kbd></div></div>
       </div>
       <div class="kbd-col">
-        <h3>Pace Bowling</h3>
-        <div class="row"><span class="label">Stock Fast Delivery</span><div class="keys"><kbd>S</kbd></div></div>
-        <div class="row"><span class="label">Outswing / Inswing Cutter</span><div class="keys"><kbd>W</kbd></div></div>
-        <div class="row"><span class="label">Yorker / Slower Dipper</span><div class="keys"><kbd>Space</kbd></div></div>
-        <div class="row"><span class="label">Bouncer / Rising Ball</span><div class="keys"><kbd>Ctrl</kbd></div></div>
-        <div class="row"><span class="label">Super Slow (High Loop)</span><div class="keys"><kbd>Alt</kbd></div></div>
-        <div class="row"><span class="label">Reverse Swing / Special</span><div class="keys"><kbd>Shift</kbd></div></div>
-        <div class="row"><span class="label">Crease Position</span><div class="keys"><kbd>&larr;</kbd><kbd>&rarr;</kbd></div></div>
-        <div class="row"><span class="label">Pitch Line &amp; Length</span><div class="keys"><kbd>&larr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&rarr;</kbd></div></div>
+        <h3>Bowling</h3>
+        <div class="row"><span class="label">Stock delivery</span><div class="keys"><kbd>S</kbd></div></div>
+        <div class="row"><span class="label">Special delivery</span><div class="keys"><kbd>A</kbd> <kbd>D</kbd> <kbd>Shift</kbd> <kbd>Alt</kbd></div></div>
+        <div class="row"><span class="label">Place ball</span><div class="keys"><kbd>&larr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&rarr;</kbd></div></div>
       </div>
       <div class="kbd-col">
-        <h3>Spin Bowling</h3>
-        <div class="row"><span class="label">Stock Break (Turn in/away)</span><div class="keys"><kbd>S</kbd></div></div>
-        <div class="row"><span class="label">Arm Ball / Straight Seam</span><div class="keys"><kbd>W</kbd></div></div>
-        <div class="row"><span class="label">Flipper / Skidding Yorker</span><div class="keys"><kbd>Space</kbd></div></div>
-        <div class="row"><span class="label">Top Spinner (Bounce)</span><div class="keys"><kbd>Ctrl</kbd></div></div>
-        <div class="row"><span class="label">Full Flight / High Floater</span><div class="keys"><kbd>Alt</kbd></div></div>
-        <div class="row"><span class="label">Doosra / Googly (Opposite)</span><div class="keys"><kbd>Shift</kbd></div></div>
-        <div class="row"><span class="label">Crease Position</span><div class="keys"><kbd>&larr;</kbd><kbd>&rarr;</kbd></div></div>
-        <div class="row"><span class="label">Release Timing Sweetspot</span><div class="keys"><kbd>S</kbd> <span style="color:#718578;font-size:11px">at mark</span></div></div>
+        <h3>Menu</h3>
+        <div class="row"><span class="label">Select</span><div class="keys"><kbd>S</kbd></div></div>
+        <div class="row"><span class="label">Back</span><div class="keys"><kbd>W</kbd></div></div>
+        <div class="row"><span class="label">Pause</span><div class="keys"><kbd>Esc</kbd></div></div>
+        <div class="row"><span class="label">Fullscreen</span><div class="keys"><kbd>Alt</kbd>+<kbd>Enter</kbd></div></div>
       </div>
       <div class="kbd-col">
-        <h3>Running &amp; Fielding</h3>
-        <div class="row"><span class="label">Take Run / Call Partner</span><div class="keys"><kbd>D</kbd></div></div>
-        <div class="row"><span class="label">Cancel Run / Return</span><div class="keys"><kbd>A</kbd></div></div>
-        <div class="row"><span class="label">Slide / Dive to Crease</span><div class="keys"><kbd>W</kbd></div></div>
-        <div class="row"><span class="label">Throw to Keeper's End</span><div class="keys"><kbd>S</kbd></div></div>
-        <div class="row"><span class="label">Throw to Bowler's End</span><div class="keys"><kbd>D</kbd></div></div>
-        <div class="row"><span class="label">Direct Hit / Flat Throw</span><div class="keys"><kbd>A</kbd> / <kbd>Shift</kbd></div></div>
-        <div class="row"><span class="label">Boundary Slide / Catch</span><div class="keys"><kbd>W</kbd> / <kbd>S</kbd></div></div>
-        <div class="row"><span class="label">Match Menu &amp; Settings</span><div class="keys"><kbd>Esc</kbd> / <kbd>${MAC ? '⌘' : 'Ctrl'}+,</kbd></div></div>
+        <h3>Load / Save</h3>
+        <div class="row"><span class="label">Save type</span><div class="keys"><kbd>Shift</kbd> <kbd>Space</kbd></div></div>
+        <div class="row"><span class="label">Delete save</span><div class="keys"><kbd>D</kbd></div></div>
+        <div class="row"><span class="label">Name a save</span><div class="keys"><kbd>Enter</kbd></div></div>
       </div>
     </div>
   </aside>
